@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils'
 import { getUser } from '@/services/auth.service'
 import { addToGuestCart } from '@/services/cart.client.service'
 import { dispatchCartUpdate } from '@/services/cart.client.service'
+import { getOptimizedImage } from '@/lib/cloudinary'
+
 
 
 interface ProductCardProps {
@@ -64,30 +66,32 @@ export default function ProductCard({
   try {
     const user = await getUser()
     
-    if (user) {
-      // Logged in user - API call
-      const response = await fetch('/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: id,
-          quantity: 1,
-          variantId: null
-        })
-      })
-      
-      if (response.ok) {
-        setShowSuccess(true)
-        dispatchCartUpdate() // 🔥 Update header count
-        setTimeout(() => setShowSuccess(false), 2000)
-      }
-    } else {
-      // Guest user - localStorage
-      addToGuestCart(id, 1)
-      setShowSuccess(true)
-      dispatchCartUpdate() // 🔥 Update header count
-      setTimeout(() => setShowSuccess(false), 2000)
-    }
+    // In handleAddToCart, make sure dispatchCartUpdate is called
+if (user) {
+  const response = await fetch('/api/cart', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productId: id,
+      quantity: 1,
+      variantId: null
+    })
+  })
+  
+  if (response.ok) {
+    console.log('📢 Dispatching cart update from product-card (logged in)')
+    setShowSuccess(true)
+    dispatchCartUpdate() // 🔥 This updates the header count
+    setTimeout(() => setShowSuccess(false), 2000)
+  }
+} else {
+  // Guest user - localStorage
+  console.log('📢 Dispatching cart update from product-card (guest)')
+  addToGuestCart(id, 1)
+  setShowSuccess(true)
+  dispatchCartUpdate() // 🔥 This updates the header count
+  setTimeout(() => setShowSuccess(false), 2000)
+}
   } catch (error) {
     console.error('Error adding to cart:', error)
   } finally {
@@ -144,11 +148,12 @@ export default function ProductCard({
       {/* Image */}
       <Link href={`/products/${slug}`} className="relative block aspect-square overflow-hidden bg-muted">
         <Image
-          src={image || '/images/placeholder.jpg'}
-          alt={name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+  src={getOptimizedImage(image, { width: 500, height: 500 })}
+  alt={name}
+  fill
+  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+  className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+/>
         
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">

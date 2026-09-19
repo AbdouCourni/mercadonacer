@@ -38,6 +38,12 @@ const navItems = [
     icon: LayoutDashboard,
     roles: ['superadmin', 'admin', 'manager', 'employee']
   },
+   {
+    name: 'Reports',
+    href: '/admin/reports',
+    icon: BarChart3,
+    roles: ['superadmin', 'admin', 'manager']
+  },
   {
     name: 'Produits',
     href: '/admin/products',
@@ -70,7 +76,7 @@ const navItems = [
   },
   {
     name: 'Livreurs',
-    href: '/admin/delivery',
+    href: '/admin/driver',
     icon: Truck,
     roles: ['superadmin', 'admin', 'manager']
   },
@@ -85,7 +91,13 @@ const navItems = [
     href: '/admin/settings',
     icon: Settings,
     roles: ['superadmin', 'admin', 'manager']
-  }
+  },
+  {
+  name: 'Mes livraisons',
+  href: '/admin/driver/orders',
+  icon: Truck,
+  roles: ['driver']
+}
 ]
 
 export function DashboardSidebar({ userRole, userName }: SidebarProps) {

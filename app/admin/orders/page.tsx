@@ -19,92 +19,47 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  UserCheck,
+  AlertTriangle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { AssignEmployeeModal } from '@/components/dashboard/assign-employee-modal'
+import { AssignDriverModal } from '@/components/dashboard/assign-driver-modal'
+import {
+  Order as BaseOrder,
+  Employee,
+  Driver,
+  OrderStatus,
+  STATUS_OPTIONS,
+  STATUS_TRANSITIONS,
+  hasMissingItems,
+  getMissingItemsCount
+} from '@/types/order.types'
 
-interface Order {
-  id: string
-  order_number: string
-  user_id: string | null
-  guest_name: string | null
-  guest_email: string | null
-  guest_phone: string | null
-  city: string
-  total: number
-  status: string
-  payment_method: string
-  created_at: string
-  assigned_to: string | null  // ← NEW
-  assigned_to_name?: string   // ← NEW (for display)
-  items: {
-    product_name: string
-    quantity: number
-  }[]
-}
+// ============================================
+// EXTENDED ORDER TYPE WITH DISPLAY NAMES
+// ============================================
 
-interface DeliveryDriver {
-  id: string
-  full_name: string
-  phone: string
-  is_available: boolean
-}
-
-const getAssignedEmployee = (order: Order) => {
-  return order.assigned_to_name || 'Non assigné'
+interface Order extends BaseOrder {
+  assigned_to_name?: string | null
+  driver_name?: string | null
 }
 
 // ============================================
-// STATUS CONFIGURATION
+// STATUS CONFIGURATION (with actual icon components)
 // ============================================
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-  assigned: { label: 'Assignée', color: 'bg-blue-100 text-blue-700', icon: Truck },
+  confirmed: { label: 'Confirmée', color: 'bg-teal-100 text-teal-700', icon: CheckCircle },
+  assigned: { label: 'Assignée', color: 'bg-blue-100 text-blue-700', icon: UserCheck },
   preparing: { label: 'En préparation', color: 'bg-indigo-100 text-indigo-700', icon: Package },
   ready: { label: 'Prête', color: 'bg-purple-100 text-purple-700', icon: CheckCircle },
-  confirmed: { label: 'Confirmée', color: 'bg-teal-100 text-teal-700', icon: CheckCircle },
-  delivering: { label: 'En cours de livraison', color: 'bg-orange-100 text-orange-700', icon: Truck },
+  in_transit: { label: 'En livraison', color: 'bg-orange-100 text-orange-700', icon: Truck },
   delivered: { label: 'Livrée', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   cancelled: { label: 'Annulée', color: 'bg-red-100 text-red-700', icon: XCircle }
-}
-
-const statusOptions = [
-  { value: 'pending', label: 'En attente' },
-  { value: 'assigned', label: 'Assignée' },
-  { value: 'preparing', label: 'En préparation' },
-  { value: 'ready', label: 'Prête' },
-  { value: 'confirmed', label: 'Confirmée' },
-  { value: 'delivering', label: 'En cours de livraison' },
-  { value: 'delivered', label: 'Livrée' },
-  { value: 'cancelled', label: 'Annulée' }
-]
-
-// ============================================
-// STATUS TRANSITIONS
-// ============================================
-
-const statusTransitions: Record<string, string[]> = {
-  pending: ['assigned', 'cancelled'],
-  assigned: ['preparing', 'cancelled'],
-  preparing: ['ready', 'cancelled'],
-  ready: ['confirmed', 'cancelled'],
-  confirmed: ['delivering', 'cancelled'],
-  delivering: ['delivered', 'cancelled'],
-  delivered: [],
-  cancelled: []
-}
-
-const statusLabels: Record<string, string> = {
-  pending: 'En attente',
-  assigned: 'Assignée',
-  preparing: 'En préparation',
-  ready: 'Prête',
-  confirmed: 'Confirmée',
-  delivering: 'En cours de livraison',
-  delivered: 'Livrée',
-  cancelled: 'Annulée'
 }
 
 // ============================================
@@ -120,7 +75,7 @@ export default function DashboardOrdersPage() {
     status: '',
     city: '',
     date: '',
-    employee: ''  // ← NEW
+    employee: ''
   })
   const [showFilters, setShowFilters] = useState(false)
   const [pagination, setPagination] = useState({
@@ -130,6 +85,16 @@ export default function DashboardOrdersPage() {
   })
   const [updating, setUpdating] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string>('admin')
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [drivers, setDrivers] = useState<Driver[]>([])
+  
+  // Assignment modals
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false)
+  const [driverModalOpen, setDriverModalOpen] = useState(false)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState('')
+  const [currentEmployeeName, setCurrentEmployeeName] = useState<string | null>(null)
+  const [currentDriverName, setCurrentDriverName] = useState<string | null>(null)
 
   // Fetch user role
   useEffect(() => {
@@ -147,15 +112,45 @@ export default function DashboardOrdersPage() {
     fetchUserRole()
   }, [])
 
+  // Fetch employees and drivers
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const response = await fetch('/api/dashboard/employee')
+        if (response.ok) {
+          const data = await response.json()
+          setEmployees(data.employees || [])
+        }
+      } catch (error) {
+        console.error('Error fetching employees:', error)
+      }
+    }
+    
+    const fetchDrivers = async () => {
+      try {
+        const response = await fetch('/api/dashboard/drivers')
+        if (response.ok) {
+          const data = await response.json()
+          setDrivers(data.drivers || [])
+        }
+      } catch (error) {
+        console.error('Error fetching drivers:', error)
+      }
+    }
+    
+    fetchEmployees()
+    fetchDrivers()
+  }, [])
+
   // Check if user can change status
   const canChangeStatus = (currentStatus: string): boolean => {
     const rolePermissions: Record<string, string[]> = {
-      superadmin: ['pending', 'assigned', 'preparing', 'ready', 'confirmed', 'delivering', 'delivered', 'cancelled'],
-      admin: ['pending', 'assigned', 'preparing', 'ready', 'confirmed', 'delivering', 'delivered', 'cancelled'],
-      manager: ['pending', 'assigned', 'preparing', 'ready', 'confirmed', 'delivering', 'delivered', 'cancelled'],
+      superadmin: ['pending', 'confirmed', 'assigned', 'preparing', 'ready', 'in_transit', 'delivered', 'cancelled'],
+      admin: ['pending', 'confirmed', 'assigned', 'preparing', 'ready', 'in_transit', 'delivered', 'cancelled'],
+      manager: ['pending', 'confirmed', 'assigned', 'preparing', 'ready', 'in_transit', 'delivered', 'cancelled'],
       employee: ['assigned', 'preparing', 'ready'],
       client: ['confirmed'],
-      driver: ['delivered']
+      driver: ['in_transit', 'delivered']
     }
 
     return rolePermissions[userRole]?.includes(currentStatus) || false
@@ -163,7 +158,7 @@ export default function DashboardOrdersPage() {
 
   // Get available next statuses
   const getAvailableStatuses = (currentStatus: string): string[] => {
-    return statusTransitions[currentStatus] || []
+    return STATUS_TRANSITIONS[currentStatus as keyof typeof STATUS_TRANSITIONS] || []
   }
 
   // Fetch orders
@@ -176,18 +171,24 @@ export default function DashboardOrdersPage() {
         if (filters.status) params.append('status', filters.status)
         if (filters.city) params.append('city', filters.city)
         if (filters.date) params.append('date', filters.date)
-          if (filters.employee === 'assigned') {
-  params.append('assigned', 'true')
-} else if (filters.employee === 'unassigned') {
-  params.append('unassigned', 'true')
-}
+        if (filters.employee === 'assigned') {
+          params.append('assigned', 'true')
+        } else if (filters.employee === 'unassigned') {
+          params.append('unassigned', 'true')
+        }
         params.append('page', String(pagination.page))
         params.append('limit', String(pagination.limit))
 
         const response = await fetch(`/api/dashboard/orders?${params.toString()}`)
         if (response.ok) {
           const data = await response.json()
-          setOrders(data.orders || [])
+          // Map the response to include display names
+          const ordersWithNames = (data.orders || []).map((order: any) => ({
+            ...order,
+            assigned_to_name: order.assigned_to_name || null,
+            driver_name: order.driver_name || null
+          }))
+          setOrders(ordersWithNames)
           setPagination(prev => ({ ...prev, total: data.count || 0 }))
         }
       } catch (error) {
@@ -213,7 +214,7 @@ export default function DashboardOrdersPage() {
 
       if (response.ok) {
         setOrders(orders.map(order =>
-          order.id === orderId ? { ...order, status: newStatus } : order
+          order.id === orderId ? { ...order, status: newStatus as OrderStatus } : order
         ))
         router.refresh()
       } else {
@@ -227,11 +228,84 @@ export default function DashboardOrdersPage() {
     }
   }
 
+  // Handle employee assignment
+  const handleAssignEmployee = async (orderId: string, employeeId: string) => {
+    try {
+      const response = await fetch(`/api/dashboard/orders/${orderId}/assign-employee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employeeId })
+      })
+
+      if (response.ok) {
+        const employee = employees.find(e => e.id === employeeId)
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  assigned_to: employeeId,
+                  assigned_to_name: employee?.full_name || null,
+                  status: 'assigned' as OrderStatus
+                } 
+              : order
+          )
+        )
+        router.refresh()
+      } else {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        alert(error.error || 'Failed to assign employee')
+      }
+    } catch (error) {
+      console.error('Error assigning employee:', error)
+      alert('Failed to assign employee. Please try again.')
+    }
+  }
+
+  // Handle driver assignment
+  const handleAssignDriver = async (orderId: string, driverId: string) => {
+    try {
+      const response = await fetch(`/api/dashboard/orders/${orderId}/assign-driver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverId })
+      })
+
+      if (response.ok) {
+        const driver = drivers.find(d => d.id === driverId)
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === orderId 
+              ? { 
+                  ...order, 
+                  delivery_id: driverId,
+                  driver_name: driver?.full_name || null,
+                  status: 'in_transit' as OrderStatus
+                } 
+              : order
+          )
+        )
+        router.refresh()
+      } else {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+        alert(error.error || 'Failed to assign driver')
+      }
+    } catch (error) {
+      console.error('Error assigning driver:', error)
+      alert('Failed to assign driver. Please try again.')
+    }
+  }
+
   const totalPages = Math.ceil(pagination.total / pagination.limit)
 
   // Get customer name
   const getCustomerName = (order: Order) => {
     return order.guest_name || 'Client'
+  }
+
+  // Get status config with icon
+  const getStatusConfig = (status: string) => {
+    return statusConfig[status] || statusConfig.pending
   }
 
   return (
@@ -252,30 +326,44 @@ export default function DashboardOrdersPage() {
           <RefreshCw size={16} />
           Actualiser
         </Button>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-  <div className="bg-white rounded-xl border border-border p-4">
-    <p className="text-sm text-text-secondary">Total</p>
-    <p className="text-2xl font-bold text-text-primary">{pagination.total}</p>
-  </div>
-  <div className="bg-white rounded-xl border border-border p-4">
-    <p className="text-sm text-text-secondary">Assignées</p>
-    <p className="text-2xl font-bold text-blue-600">
-      {orders.filter(o => o.assigned_to).length}
-    </p>
-  </div>
-  <div className="bg-white rounded-xl border border-border p-4">
-    <p className="text-sm text-text-secondary">Non assignées</p>
-    <p className="text-2xl font-bold text-orange-600">
-      {orders.filter(o => !o.assigned_to).length}
-    </p>
-  </div>
-  <div className="bg-white rounded-xl border border-border p-4">
-    <p className="text-sm text-text-secondary">En préparation</p>
-    <p className="text-2xl font-bold text-indigo-600">
-      {orders.filter(o => o.status === 'preparing').length}
-    </p>
-  </div>
-</div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">Total</p>
+          <p className="text-2xl font-bold text-text-primary">{pagination.total}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">En attente</p>
+          <p className="text-2xl font-bold text-yellow-600">
+            {orders.filter(o => o.status === 'pending').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">Assignées</p>
+          <p className="text-2xl font-bold text-blue-600">
+            {orders.filter(o => o.assigned_to).length}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">En préparation</p>
+          <p className="text-2xl font-bold text-indigo-600">
+            {orders.filter(o => o.status === 'preparing').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">En livraison</p>
+          <p className="text-2xl font-bold text-orange-600">
+            {orders.filter(o => o.status === 'in_transit').length}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-border p-4">
+          <p className="text-sm text-text-secondary">⚠️ Manquants</p>
+          <p className="text-2xl font-bold text-red-600">
+            {orders.filter(o => hasMissingItems(o)).length}
+          </p>
+        </div>
       </div>
 
       {/* Filters & Search */}
@@ -307,7 +395,7 @@ export default function DashboardOrdersPage() {
         </div>
 
         {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-4 border-t border-border">
             <div>
               <label className="text-sm font-medium block mb-1">Statut</label>
               <select
@@ -316,7 +404,7 @@ export default function DashboardOrdersPage() {
                 className="w-full px-3 py-2 rounded-lg border border-border"
               >
                 <option value="">Tous</option>
-                {statusOptions.map((s) => (
+                {STATUS_OPTIONS.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
@@ -348,17 +436,17 @@ export default function DashboardOrdersPage() {
               />
             </div>
             <div>
-  <label className="text-sm font-medium block mb-1">Employé</label>
-  <select
-    value={filters.employee}
-    onChange={(e) => setFilters({ ...filters, employee: e.target.value })}
-    className="w-full px-3 py-2 rounded-lg border border-border"
-  >
-    <option value="">Tous</option>
-    <option value="assigned">Assignées</option>
-    <option value="unassigned">Non assignées</option>
-  </select>
-</div>
+              <label className="text-sm font-medium block mb-1">Assignation</label>
+              <select
+                value={filters.employee}
+                onChange={(e) => setFilters({ ...filters, employee: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border"
+              >
+                <option value="">Tous</option>
+                <option value="assigned">Assignées</option>
+                <option value="unassigned">Non assignées</option>
+              </select>
+            </div>
           </div>
         )}
       </div>
@@ -387,18 +475,22 @@ export default function DashboardOrdersPage() {
                     <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Ville</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Total</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Statut</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Employé</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Livreur</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Date</th>
                     <th className="px-4 py-3 text-right text-sm font-medium text-text-secondary">Actions</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Assigné à</th>
-
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => {
-                    const status = statusConfig[order.status] || statusConfig.pending
+                    const status = getStatusConfig(order.status)
                     const StatusIcon = status.icon
                     const canChange = canChangeStatus(order.status)
                     const availableStatuses = getAvailableStatuses(order.status)
+                    const hasEmployee = !!order.assigned_to
+                    const hasDriver = !!order.delivery_id
+                    const hasMissing = hasMissingItems(order)
+                    const missingCount = getMissingItemsCount(order)
 
                     return (
                       <tr key={order.id} className="border-b border-border hover:bg-muted/30 transition-colors">
@@ -415,42 +507,95 @@ export default function DashboardOrdersPage() {
                         <td className="px-4 py-3 text-sm text-text-secondary">{order.city}</td>
                         <td className="px-4 py-3 font-bold text-primary">{order.total.toFixed(2)} DH</td>
                         <td className="px-4 py-3">
-                          <span className={cn(
-                            "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full",
-                            status.color
-                          )}>
-                            <StatusIcon size={12} />
-                            {status.label}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className={cn(
+                              "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full",
+                              status.color
+                            )}>
+                              <StatusIcon size={12} />
+                              {status.label}
+                            </span>
+                            {/* Missing Items Badge */}
+                            {hasMissing && (
+                              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                                <AlertTriangle size={12} />
+                                {missingCount} manquant{missingCount > 1 ? 's' : ''}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {hasEmployee ? (
+                            <span className="text-blue-600 font-medium">{order.assigned_to_name || 'Assigné'}</span>
+                          ) : (
+                            <span className="text-text-secondary">Non assigné</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-text-secondary">
+                          {hasDriver ? (
+                            <span className="text-green-600 font-medium">{order.driver_name || 'Assigné'}</span>
+                          ) : (
+                            <span className="text-text-secondary">Non assigné</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-text-secondary">
                           {new Date(order.created_at).toLocaleDateString('fr-MA')}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link href={`/dashboard/orders/${order.id}`}>
+                          <div className="flex items-center justify-end gap-1 flex-wrap">
+                            <Link href={`/admin/orders/${order.id}`}>
                               <button className="p-1.5 hover:bg-muted rounded transition-colors" title="Détails">
                                 <Eye size={16} className="text-text-secondary" />
                               </button>
                             </Link>
-                            {canChange && availableStatuses.length > 0 && (
-                              <select
-                                value=""
-                                onChange={(e) => updateStatus(order.id, e.target.value)}
+                            
+                            {/* Assign Employee Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedOrderId(order.id)
+                                setSelectedOrderNumber(order.order_number)
+                                setCurrentEmployeeName(order.assigned_to_name || null)
+                                setEmployeeModalOpen(true)
+                              }}
+                              className={cn(
+                                "p-1.5 rounded transition-colors",
+                                hasEmployee ? "hover:bg-muted" : "hover:bg-blue-50"
+                              )}
+                              title={hasEmployee ? "Changer l'employé" : "Assigner un employé"}
+                            >
+                              <UserCheck size={16} className={hasEmployee ? "text-blue-600" : "text-primary"} />
+                            </button>
+
+                            {/* Assign Driver Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedOrderId(order.id)
+                                setSelectedOrderNumber(order.order_number)
+                                setCurrentDriverName(order.driver_name || null)
+                                setDriverModalOpen(true)
+                              }}
+                              className={cn(
+                                "p-1.5 rounded transition-colors",
+                                hasDriver ? "hover:bg-muted" : "hover:bg-green-50"
+                              )}
+                              title={hasDriver ? "Changer le livreur" : "Assigner un livreur"}
+                            >
+                              <Truck size={16} className={hasDriver ? "text-green-600" : "text-primary"} />
+                            </button>
+
+                            {/* Cancel button */}
+                            {canChange && availableStatuses.includes('cancelled') && (
+                              <button
+                                onClick={() => updateStatus(order.id, 'cancelled')}
                                 disabled={updating === order.id}
-                                className="text-xs px-2 py-1 rounded border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                                className="text-xs px-2 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                               >
-                                <option value="">Changer</option>
-                                {availableStatuses.map((s) => (
-                                  <option key={s} value={s}>{statusLabels[s]}</option>
-                                ))}
-                              </select>
+                                Annuler
+                              </button>
                             )}
+                            
                             {updating === order.id && <Loader2 size={14} className="animate-spin text-primary" />}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-text-secondary">
-                          {getAssignedEmployee(order)}
                         </td>
                       </tr>
                     )
@@ -462,34 +607,79 @@ export default function DashboardOrdersPage() {
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-border">
               {orders.map((order) => {
-                const status = statusConfig[order.status] || statusConfig.pending
+                const status = getStatusConfig(order.status)
                 const StatusIcon = status.icon
                 const canChange = canChangeStatus(order.status)
                 const availableStatuses = getAvailableStatuses(order.status)
+                const hasEmployee = !!order.assigned_to
+                const hasDriver = !!order.delivery_id
+                const hasMissing = hasMissingItems(order)
 
                 return (
                   <div key={order.id} className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-text-primary">#{order.order_number}</p>
-                      <span className={cn(
-                        "text-xs px-2 py-1 rounded-full flex items-center gap-1",
-                        status.color
-                      )}>
-                        <StatusIcon size={12} />
-                        {status.label}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={cn(
+                          "text-xs px-2 py-1 rounded-full flex items-center gap-1",
+                          status.color
+                        )}>
+                          <StatusIcon size={12} />
+                          {status.label}
+                        </span>
+                        {hasMissing && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+                            <AlertTriangle size={12} />
+                            ⚠️
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-1 text-sm">
                       <p className="text-text-primary">{getCustomerName(order)}</p>
                       <p className="text-text-secondary">{order.city} • {order.total.toFixed(2)} DH</p>
+                      <p className="text-text-secondary">
+                        Employé: {hasEmployee ? order.assigned_to_name || 'Assigné' : 'Non assigné'}
+                      </p>
+                      <p className="text-text-secondary">
+                        Livreur: {hasDriver ? order.driver_name || 'Assigné' : 'Non assigné'}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Link href={`/dashboard/orders/${order.id}`}>
+                      <Link href={`/admin/orders/${order.id}`}>
                         <Button size="sm" variant="outline" className="text-xs">
                           <Eye size={14} className="mr-1" />
                           Détails
                         </Button>
                       </Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => {
+                          setSelectedOrderId(order.id)
+                          setSelectedOrderNumber(order.order_number)
+                          setCurrentEmployeeName(order.assigned_to_name || null)
+                          setEmployeeModalOpen(true)
+                        }}
+                      >
+                        <UserCheck size={14} className="mr-1" />
+                        Assigner employé
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs"
+                        onClick={() => {
+                          setSelectedOrderId(order.id)
+                          setSelectedOrderNumber(order.order_number)
+                          setCurrentDriverName(order.driver_name || null)
+                          setDriverModalOpen(true)
+                        }}
+                      >
+                        <Truck size={14} className="mr-1" />
+                        Assigner livreur
+                      </Button>
                       {canChange && availableStatuses.length > 0 && (
                         <select
                           value=""
@@ -499,7 +689,7 @@ export default function DashboardOrdersPage() {
                         >
                           <option value="">Changer</option>
                           {availableStatuses.map((s) => (
-                            <option key={s} value={s}>{statusLabels[s]}</option>
+                            <option key={s} value={s}>{statusConfig[s]?.label || s}</option>
                           ))}
                         </select>
                       )}
@@ -540,6 +730,32 @@ export default function DashboardOrdersPage() {
           </>
         )}
       </div>
+
+      {/* Assign Employee Modal */}
+      <AssignEmployeeModal
+        isOpen={employeeModalOpen}
+        onClose={() => {
+          setEmployeeModalOpen(false)
+          setSelectedOrderId(null)
+        }}
+        orderId={selectedOrderId || ''}
+        orderNumber={selectedOrderNumber}
+        currentEmployeeName={currentEmployeeName}
+        onAssign={handleAssignEmployee}
+      />
+
+      {/* Assign Driver Modal */}
+      <AssignDriverModal
+        isOpen={driverModalOpen}
+        onClose={() => {
+          setDriverModalOpen(false)
+          setSelectedOrderId(null)
+        }}
+        orderId={selectedOrderId || ''}
+        orderNumber={selectedOrderNumber}
+        currentDriverName={currentDriverName}
+        onAssign={handleAssignDriver}
+      />
     </div>
   )
 }

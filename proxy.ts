@@ -50,6 +50,8 @@ export async function proxy(request: NextRequest) {
     '/contact',
     '/login',
     '/register',
+    '/forgot-password',
+    '/reset-password',
     '/cart',
     '/wishlist',
     '/test-page',
@@ -59,6 +61,7 @@ export async function proxy(request: NextRequest) {
     '/api/cart',
     '/api/user/role',
     '/auth/callback',
+    '/order/[id]',
   ]
   
   const isPublic = publicRoutes.some((route) => 
@@ -115,7 +118,7 @@ export async function proxy(request: NextRequest) {
 
       console.log('👤 [PROXY] User role:', role)
 
-      const allowedRoles = ['superadmin', 'admin', 'manager', 'employee']
+      const allowedRoles = ['superadmin', 'admin', 'manager', 'employee','driver']
       
       if (!allowedRoles.includes(role)) {
         console.log('❌ [PROXY] Access denied for role:', role)

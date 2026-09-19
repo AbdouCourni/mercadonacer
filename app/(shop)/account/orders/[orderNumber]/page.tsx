@@ -10,34 +10,46 @@ import Link from 'next/link'
 import { ArrowLeft, Truck, CreditCard, Package, Clock, CheckCircle, XCircle, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { OrderWhatsAppButtons } from '@/components/OrderWhatsAppButtons'
+import { WhatsAppLink } from '@/components/WhatsAppLink'
+import { Order,Driver,OrderItem } from '@/types/order.types'
 
-interface OrderItem {
-  product_name: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  variant_name: string | null
-}
+// interface OrderItem {
+//   product_name: string
+//   quantity: number
+//   unit_price: number
+//   total_price: number
+//   variant_name: string | null
+// }
 
-interface Order {
-  delivery_notes: string | null
-  driver: any
-  delivery_id: string | null
-  id: string
-  order_number: string
-  status: string
-  total: number
-  subtotal: number
-  delivery_fee: number
-  tax: number
-  payment_method: string
-  address_line1: string
-  address_line2: string
-  city: string
-  postal_code: string
-  created_at: string
-  items: OrderItem[]  // ← Make sure this is defined
-}
+// interface Driver {
+//   id: string
+//   full_name: string
+//   phone: string
+//   email?: string
+//   driver_zone?: string | null
+//   is_active?: boolean
+// }
+
+// interface Order {
+//   delivery_notes: string | null
+//   driver: Driver | null
+//   delivery_id: string | null
+//   id: string
+//   order_number: string
+//   status: string
+//   total: number
+//   subtotal: number
+//   delivery_fee: number
+//   tax: number
+//   payment_method: string
+//   address_line1: string
+//   address_line2: string
+//   city: string
+//   postal_code: string
+//   created_at: string
+//   items: OrderItem[]  // ← Make sure this is defined
+// }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -57,30 +69,38 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+    const [employee, setEmployee] = useState<any>(null)
+  const [driver, setDriver] = useState<any>(null)
 
-  useEffect(() => {
+useEffect(() => {
     const fetchOrder = async () => {
       try {
-        console.log('🔍 Fetching order:', orderNumber)
+        // 1. Fetch order
         const response = await fetch(`/api/orders?orderNumber=${encodeURIComponent(orderNumber)}`)
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch order: ${response.status}`)
-        }
-        
         const data = await response.json()
-        console.log('📦 Order data:', data)
-        
-        // 🔥 Ensure items is always an array
-        if (data) {
-          data.items = data.items || []
-        }
-        
         setOrder(data)
+
+        // 2. Fetch employee from profiles using assigned_to
+        if (data.assigned_to) {
+          const empRes = await fetch(`/api/dashboard/drivers/${data.assigned_to}`)
+          if (empRes.ok) {
+            const empData = await empRes.json()
+            setEmployee(empData)
+          }
+        }
+
+        // 3. Fetch driver from profiles using delivery_id
+        if (data.delivery_id) {
+          const driverRes = await fetch(`/api/dashboard/drivers/${data.delivery_id}`)
+          if (driverRes.ok) {
+            const driverData = await driverRes.json()
+            setDriver(driverData)
+          }
+        }
+
+        setLoading(false)
       } catch (error) {
-        console.error('❌ Error fetching order:', error)
-        setError(error instanceof Error ? error.message : 'Failed to load order')
-      } finally {
+        console.error('Error:', error)
         setLoading(false)
       }
     }
@@ -89,6 +109,7 @@ export default function OrderDetailPage() {
       fetchOrder()
     }
   }, [orderNumber])
+
 
   if (loading) {
     return (
@@ -194,6 +215,33 @@ export default function OrderDetailPage() {
       {/* Delivery Details */}
      <div className="bg-white rounded-xl border border-border p-6">
   <h2 className="font-semibold text-text-primary mb-4">Adresse de livraison</h2>
+
+  {/* Delivery Code */}
+{order.delivery_code && (
+  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+    <div className="text-center">
+      <h2 className="text-sm font-medium text-blue-800 mb-2">
+        🔑 Code de livraison
+      </h2>
+      <p className="text-4xl font-bold text-blue-700 tracking-widest mb-2">
+        {order.delivery_code}
+      </p>
+      <p className="text-sm text-blue-600">
+        Présentez ce code au livreur lors de la livraison
+      </p>
+      {order.ultimate_total && order.ultimate_total !== order.total && (
+        <div className="mt-3 pt-3 border-t border-blue-200">
+          <p className="text-sm text-blue-700">
+            Total ajusté: <span className="font-bold">{order.ultimate_total.toFixed(2)} DH</span>
+          </p>
+          <p className="text-xs text-blue-600">
+            (Réduction pour articles manquants)
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
   
   <div className="space-y-3 text-sm">
     {/* Address */}
@@ -216,25 +264,36 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Driver Info (if assigned) */}
-      {order.delivery_id && (
+         {employee?.phone && (
+        <div className="flex items-center gap-2 text-text-secondary">
+          <Package size={14} className="text-primary" />
+          <span>
+            Préparée par: <span className="text-text-primary font-medium">
+              {employee.full_name || 'Employé'}
+            </span>
+          </span>
+          <WhatsAppLink 
+            phone={employee.phone} 
+            order={order} 
+            label="WhatsApp"
+          />
+        </div>
+      )}
+
+      {/* Driver WhatsApp */}
+      {driver?.phone && (
         <div className="flex items-center gap-2 text-text-secondary">
           <Truck size={14} className="text-primary" />
           <span>
             Livreur: <span className="text-text-primary font-medium">
-              {order.driver?.full_name || 'Assigné'}
+              {driver.full_name || 'Livreur'}
             </span>
           </span>
-          {order.driver?.phone && (
-            <a 
-              href={`https://wa.me/${order.driver.phone.replace(/[^0-9]/g, '')}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-green-600 hover:underline text-xs flex items-center gap-1"
-            >
-              <Phone size={12} />
-              WhatsApp
-            </a>
-          )}
+          <WhatsAppLink 
+            phone={driver.phone} 
+            order={order} 
+            label="WhatsApp"
+          />
         </div>
       )}
 

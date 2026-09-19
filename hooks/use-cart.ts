@@ -1,6 +1,6 @@
 // File: hooks/use-cart.ts
 // Path: /hooks/use-cart.ts
-// Description: Cart hook for MercadoNacer (Client Component)
+// Description: Cart hook - WITH SILENT REFRESH
 
 'use client'
 
@@ -33,7 +33,7 @@ interface CartItem {
     compare_price: number | null
     images: string[]
     stock: number
-  }
+  } | null
   product_variants: {
     id: string
     name: string
@@ -48,53 +48,94 @@ export function useCart() {
   const [itemCount, setItemCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // Fetch cart
-  const normalizeItems = (arr: any[] | null | undefined): CartItem[] => {
-    return (arr || []).map((it: any) => ({
-      id: String(it.id),
-      product_id: String(it.product_id ?? it.product_id),
-      variant_id: it.variant_id ?? null,
-      quantity: Number(it.quantity ?? 0),
-      products: it.products && !Array.isArray(it.products)
-        ? {
-            id: String(it.products.id ?? ''),
-            name: String(it.products.name ?? ''),
-            slug: String(it.products.slug ?? ''),
-            price: Number(it.products.price ?? 0),
-            compare_price: it.products.compare_price ?? null,
-            images: Array.isArray(it.products.images) ? it.products.images : [],
-            stock: Number(it.products.stock ?? 0)
-          }
-        : (Array.isArray(it.products) ? (it.products[0] ?? { id: '', name: '', slug: '', price: 0, compare_price: null, images: [], stock: 0 }) : { id: '', name: '', slug: '', price: 0, compare_price: null, images: [], stock: 0 }),
-      product_variants: it.product_variants || null
-    }))
-  }
-
-  const fetchCart = useCallback(async () => {
+  // Fetch cart - with silent option
+  const fetchCart = useCallback(async (silent: boolean = false) => {
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      }
       
-      // Check if user is logged in
       const user = await getUser()
       setIsLoggedIn(!!user)
       setUserId(user?.id || null)
 
       if (user) {
-        // Fetch from database using client service
         const data = await getCartClient(user.id)
-        const normalized = normalizeItems(data)
-        setItems(normalized)
-        setItemCount(normalized.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0)
+        const mappedItems = data.map((item: any) => ({
+          id: String(item.id),
+          product_id: String(item.product_id),
+          variant_id: item.variant_id || null,
+          quantity: Number(item.quantity),
+          products: item.products ? {
+            id: String(item.products.id),
+            name: String(item.products.name),
+            slug: String(item.products.slug),
+            price: Number(item.products.price),
+            compare_price: item.products.compare_price || null,
+            images: Array.isArray(item.products.images) ? item.products.images : [],
+            stock: Number(item.products.stock || 0)
+          } : null,
+          product_variants: item.product_variants || null
+        }))
+        
+        setItems(mappedItems)
+        setItemCount(mappedItems.reduce((acc, item) => acc + item.quantity, 0))
       } else {
-        // Fetch from localStorage
         const guestItems = getGuestCart()
-        setItems(normalizeItems(guestItems as any))
-        setItemCount(getGuestCartCount())
+        
+        if (guestItems.length === 0) {
+          setItems([])
+          setItemCount(0)
+          if (!silent) setLoading(false)
+          return
+        }
+
+        const mappedItems = []
+        for (const guestItem of guestItems) {
+          try {
+            const response = await fetch(`/api/products?id=${guestItem.productId}`)
+            if (response.ok) {
+              const product = await response.json()
+              mappedItems.push({
+                id: `guest-${guestItem.productId}-${Date.now()}`,
+                product_id: String(guestItem.productId),
+                variant_id: guestItem.variantId || null,
+                quantity: Number(guestItem.quantity || 1),
+                products: {
+                  id: String(product.id),
+                  name: String(product.name),
+                  slug: String(product.slug),
+                  price: Number(product.price),
+                  compare_price: product.compare_price || null,
+                  images: Array.isArray(product.images) ? product.images : [],
+                  stock: Number(product.stock || 0)
+                },
+                product_variants: null
+              })
+            } else {
+              mappedItems.push({
+                id: `guest-${guestItem.productId}-${Date.now()}`,
+                product_id: String(guestItem.productId),
+                variant_id: guestItem.variantId || null,
+                quantity: Number(guestItem.quantity || 1),
+                products: null,
+                product_variants: null
+              })
+            }
+          } catch (error) {
+            console.error('Error fetching product:', guestItem.productId, error)
+          }
+        }
+        
+        setItems(mappedItems)
+        setItemCount(mappedItems.reduce((acc, item) => acc + item.quantity, 0))
       }
     } catch (error) {
       console.error('Error fetching cart:', error)
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
   }, [])
 
@@ -102,104 +143,86 @@ export function useCart() {
   const addToCart = useCallback(async (productId: string, quantity: number = 1, variantId?: string) => {
     try {
       if (isLoggedIn && userId) {
-        // User cart - client service
         await addToCartClient(userId, productId, quantity, variantId)
-        const updatedCart = await getCartClient(userId)
-        const normalized = normalizeItems(updatedCart)
-        setItems(normalized)
-        setItemCount(normalized.reduce((acc: number, item: any) => acc + item.quantity, 0))
       } else {
-        // Guest cart - localStorage
         addToGuestCart(productId, quantity, variantId)
-        const guestItems = getGuestCart()
-        setItems(normalizeItems(guestItems as any))
-        setItemCount(getGuestCartCount())
       }
+      // 🔥 Silent refresh - no loading spinner
+      await fetchCart(true)
     } catch (error) {
       console.error('Error adding to cart:', error)
     }
-  }, [isLoggedIn, userId])
+  }, [isLoggedIn, userId, fetchCart])
 
   // Update quantity
   const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
     try {
+      console.log('🔄 Updating quantity:', { itemId, quantity })
+      
       if (isLoggedIn && userId) {
-        // User cart - client service
         await updateCartItemQuantityClient(itemId, quantity)
-        const updatedCart = await getCartClient(userId)
-        const normalized = normalizeItems(updatedCart)
-        setItems(normalized)
-        setItemCount(normalized.reduce((acc: number, item: any) => acc + item.quantity, 0))
       } else {
-        // Find productId from guest items
-        const item = items.find((i: any) => i.id === itemId) as any
+        const item = items.find((i: any) => i.id === itemId)
         if (item) {
-          updateGuestCartQuantity(item.productId, quantity, item.variantId)
-          const guestItems = getGuestCart()
-          setItems(normalizeItems(guestItems as any))
-          setItemCount(getGuestCartCount())
+          updateGuestCartQuantity(item.product_id, quantity, item.variant_id || undefined)
         }
       }
+      // 🔥 Silent refresh - no loading spinner
+      await fetchCart(true)
     } catch (error) {
       console.error('Error updating quantity:', error)
     }
-  }, [isLoggedIn, userId, items])
+  }, [isLoggedIn, userId, items, fetchCart])
 
   // Remove from cart
-  const removeFromCart = useCallback(async (itemId: string) => {
-    try {
-      if (isLoggedIn && userId) {
-        // User cart - client service
-        await removeFromCartClient(itemId)
-        const updatedCart = await getCartClient(userId)
-        const normalized = normalizeItems(updatedCart)
-        setItems(normalized)
-        setItemCount(normalized.reduce((acc: number, item: any) => acc + item.quantity, 0))
-      } else {
-        // Find productId from guest items
-        const item = items.find((i: any) => i.id === itemId) as any
-        if (item) {
-          removeFromGuestCart(item.productId, item.variantId)
-          const guestItems = getGuestCart()
-          setItems(normalizeItems(guestItems as any))
-          setItemCount(getGuestCartCount())
-        }
+ const removeFromCart = useCallback(async (itemId: string) => {
+  try {
+    console.log('🗑️ Removing item:', itemId)
+    
+    if (isLoggedIn && userId) {
+      await removeFromCartClient(itemId)
+    } else {
+      const item = items.find((i: any) => i.id === itemId)
+      if (item) {
+        removeFromGuestCart(item.product_id, item.variant_id || undefined)
       }
-    } catch (error) {
-      console.error('Error removing from cart:', error)
     }
-  }, [isLoggedIn, userId, items])
+    // ✅ Silent refresh - this will update items
+    await fetchCart(true)
+  } catch (error) {
+    console.error('Error removing from cart:', error)
+  }
+}, [isLoggedIn, userId, items, fetchCart])
 
   // Clear cart
   const clearCart = useCallback(async () => {
     try {
       if (isLoggedIn && userId) {
-        // User cart - client service
         await clearCartClient(userId)
-        setItems([])
-        setItemCount(0)
       } else {
-        // Guest cart - localStorage
         clearGuestCart()
-        setItems([])
-        setItemCount(0)
       }
+      // 🔥 Silent refresh - no loading spinner
+      await fetchCart(true)
     } catch (error) {
       console.error('Error clearing cart:', error)
     }
-  }, [isLoggedIn, userId])
+  }, [isLoggedIn, userId, fetchCart])
 
   // Calculate total
-  const getTotal = useCallback(() => {
-    return items.reduce((total, item) => {
-      const price = item.products?.price || item.product_variants?.price || 0
-      return total + (price * item.quantity)
-    }, 0)
-  }, [items])
+ const getTotal = useCallback(() => {
+  console.log('💰 Calculating total for items:', items.length)
+  const total = items.reduce((sum, item) => {
+    const price = item.products?.price || 0
+    return sum + (price * item.quantity)
+  }, 0)
+  console.log('💰 Total:', total)
+  return total
+}, [items])
 
   // Load cart on mount
   useEffect(() => {
-    fetchCart()
+    fetchCart(false)
   }, [fetchCart])
 
   return {

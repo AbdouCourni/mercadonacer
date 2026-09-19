@@ -27,3 +27,15 @@ export function truncate(text: string, length: number = 100): string {
   if (text.length <= length) return text
   return text.slice(0, length) + '...'
 }
+
+export function formatPhoneForWhatsApp(phone: string): string {
+  if (!phone) return ''
+  let cleaned = phone.replace(/[^0-9]/g, '')
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1)
+  }
+  if (!cleaned.startsWith('212')) {
+    cleaned = '212' + cleaned
+  }
+  return cleaned
+}

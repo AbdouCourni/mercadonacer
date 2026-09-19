@@ -1,72 +1,89 @@
 // File: app/api/dashboard/drivers/route.ts
 // Path: /app/api/dashboard/drivers/route.ts
-// Description: Delivery drivers management API (admin only)
+// Description: Get all drivers with role = 'driver'
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireManager } from '@/services/rbac.service'
 
-// GET - List all delivery drivers
 export async function GET() {
   try {
-    await requireManager()
-
+    console.log('🔍 [Drivers API] Called')
+    
     const supabase = await createClient()
     
-    const { data, error } = await supabase
-      .from('delivery_drivers')
-      .select('*')
-      .order('full_name')
+    // 1. First get the driver role ID from roles table
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('id')
+      .eq('name', 'driver')
+      .single()
 
-    if (error) throw error
-
-    return NextResponse.json({ drivers: data || [] })
-  } catch (error) {
-    console.error('Drivers fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch drivers' },
-      { status: 500 }
-    )
-  }
-}
-
-// POST - Create a new delivery driver
-export async function POST(request: NextRequest) {
-  try {
-    await requireManager()
-
-    const supabase = await createClient()
-    const body = await request.json()
-
-    // Validate required fields
-    if (!body.full_name || !body.phone) {
+    if (roleError) {
+      console.error('❌ [Drivers API] Role error:', roleError)
       return NextResponse.json(
-        { error: 'Name and phone are required' },
-        { status: 400 }
+        { error: 'Driver role not found' },
+        { status: 500 }
       )
     }
 
-    const { data, error } = await supabase
-      .from('delivery_drivers')
-      .insert([{
-        full_name: body.full_name,
-        phone: body.phone,
-        vehicle_type: body.vehicle_type || 'car',
-        license_plate: body.license_plate || null,
-        max_deliveries_per_day: body.max_deliveries_per_day || 10,
-        is_available: body.is_available !== undefined ? body.is_available : true,
-        rating: body.rating || 0,
-      }])
-      .select()
-      .single()
+    const driverRoleId = roleData.id
+    console.log('✅ [Drivers API] Driver role ID:', driverRoleId)
 
-    if (error) throw error
+    // 2. Get all user_roles with driver role
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('user_id')
+      .eq('role_id', driverRoleId)
 
-    return NextResponse.json(data)
+    if (rolesError) {
+      console.error('❌ [Drivers API] Error fetching roles:', rolesError)
+      return NextResponse.json(
+        { error: 'Failed to fetch drivers' },
+        { status: 500 }
+      )
+    }
+
+    console.log('📦 [Drivers API] User roles found:', userRoles?.length || 0)
+
+    if (!userRoles || userRoles.length === 0) {
+      console.log('⚠️ [Drivers API] No drivers found')
+      return NextResponse.json({ drivers: [] })
+    }
+
+    // Get user IDs
+    const userIds = userRoles.map((ur: any) => ur.user_id)
+
+    // 3. Get profiles for these users
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name, phone, is_active, driver_zone')
+      .in('id', userIds)
+
+    if (profilesError) {
+      console.error('❌ [Drivers API] Profiles error:', profilesError)
+      return NextResponse.json(
+        { error: 'Failed to fetch driver profiles' },
+        { status: 500 }
+      )
+    }
+
+    console.log('📦 [Drivers API] Profiles found:', profiles?.length || 0)
+
+    const drivers = profiles.map((profile: any) => ({
+      id: profile.id,
+      full_name: profile.full_name || '',
+      phone: profile.phone || '',
+      is_available: profile.is_active ?? true,
+      driver_zone: profile.driver_zone || null,
+      is_active: profile.is_active ?? true
+    }))
+
+    console.log(`✅ [Drivers API] Returning ${drivers.length} drivers:`, drivers.map(d => d.full_name))
+    return NextResponse.json({ drivers })
   } catch (error) {
-    console.error('Driver creation error:', error)
+    console.error('❌ [Drivers API] Error:', error)
     return NextResponse.json(
-      { error: 'Failed to create driver' },
+      { error: 'Failed to fetch drivers' },
       { status: 500 }
     )
   }

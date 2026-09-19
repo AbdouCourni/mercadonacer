@@ -12,10 +12,9 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const body = await request.json()
     
-    // 🔥 IMPORTANT: Get user FIRST
-const user = await getServerUser()
+    const user = await getServerUser()
 
-console.log('👤 User from auth:', user?.id)
+    console.log('👤 User from auth:', user?.id)
     console.log('👤 User email:', user?.email)
 
     // Validate required fields
@@ -56,15 +55,12 @@ console.log('👤 User from auth:', user?.id)
       }
     }
 
-    // 🔥 FIX: Create order with user_id properly set
-const orderData = {
+    // Create order
+    const orderData = {
       user_id: user?.id || null,
-      
-      // 🔥 ALWAYS save the contact info from the form
-      guest_email: body.email,  // Always save email from form
-      guest_name: body.full_name,  // Always save name from form
-      guest_phone: body.phone,  // Always save phone from form
-      
+      guest_email: body.email,
+      guest_name: body.full_name,
+      guest_phone: body.phone,
       address_line1: body.address,
       address_line2: body.address_line2 || '',
       city: body.city,
@@ -79,20 +75,12 @@ const orderData = {
       payment_status: 'pending',
       status: 'pending',
       customer_notes: body.delivery_notes || '',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+        delivery_code: body.delivery_code, 
+    delivery_code_generated_at: new Date().toISOString()
     }
 
-    console.log('📝 Creating order with data:', {
-      user_id: orderData.user_id || 'NULL',
-      guest_email: orderData.guest_email,
-      guest_name: orderData.guest_name,
-      guest_phone: orderData.guest_phone
-    })
-
-    console.log('📝 Creating order with data:', {
-      ...orderData,
-      user_id: orderData.user_id || 'NULL'
-    })
+    console.log('📝 Creating order with data:', JSON.stringify(orderData, null, 2))
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -109,7 +97,6 @@ const orderData = {
     }
 
     console.log('✅ Order created:', order.order_number)
-    console.log('✅ Order user_id:', order.user_id)
 
     // Create order items
     const orderItems = body.items.map((item: any) => ({
@@ -123,29 +110,44 @@ const orderData = {
       total_price: (item.price || 0) * item.quantity
     }))
 
+    console.log('📝 Creating order items:', JSON.stringify(orderItems, null, 2))
+
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(orderItems)
 
     if (itemsError) {
       console.error('❌ Order items error:', itemsError)
+      console.error('❌ Items error details:', JSON.stringify(itemsError, null, 2))
+      
       // Rollback order if items fail
       await supabase.from('orders').delete().eq('id', order.id)
       return NextResponse.json(
-        { error: 'Failed to create order items' },
+        { error: `Failed to create order items: ${itemsError.message}` },
         { status: 500 }
       )
     }
 
-    // Update stock
-    for (const item of body.items) {
-      await supabase.rpc('decrement_stock', {
-        p_product_id: item.product_id,
-        p_quantity: item.quantity
-      })
+    // Update stock - check if function exists
+    try {
+      for (const item of body.items) {
+        console.log(`📝 Updating stock for product ${item.product_id}: -${item.quantity}`)
+        const { error: stockError } = await supabase.rpc('decrement_stock', {
+          p_product_id: item.product_id,
+          p_quantity: item.quantity
+        })
+        
+        if (stockError) {
+          console.error('❌ Stock update error:', stockError)
+          // Don't fail the order, just log the error
+        }
+      }
+    } catch (stockError) {
+      console.error('❌ Stock function error:', stockError)
+      // Continue - order is already created
     }
 
-    // 🔥 Clear cart (if user is logged in)
+    // Clear cart (if user is logged in)
     if (user?.id) {
       console.log('🧹 Clearing cart for user:', user.id)
       const { error: clearCartError } = await supabase
@@ -155,7 +157,6 @@ const orderData = {
 
       if (clearCartError) {
         console.error('Error clearing cart:', clearCartError)
-        // Don't fail the order, just log the error
       }
     }
 
@@ -167,7 +168,7 @@ const orderData = {
   } catch (error) {
     console.error('❌ Order API error:', error)
     return NextResponse.json(
-      { error: 'Failed to create order' },
+      { error: error instanceof Error ? error.message : 'Failed to create order' },
       { status: 500 }
     )
   }

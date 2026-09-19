@@ -124,7 +124,19 @@ export default function OrderSuccessPage() {
           </div>
         )}
       </div>
-
+{order.delivery_code && (
+  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+    <h3 className="font-medium text-blue-800 mb-2">
+      🔑 Code de livraison
+    </h3>
+    <p className="text-3xl font-bold text-blue-700 tracking-widest">
+      {order.delivery_code}
+    </p>
+    <p className="text-sm text-blue-600 mt-2">
+      Présentez ce code au livreur lors de la livraison
+    </p>
+  </div>
+)}
       {/* Status Tracking */}
       <div className="bg-white rounded-xl border border-border p-6 mb-6">
         <h2 className="font-semibold text-text-primary mb-4">Suivi de commande</h2>

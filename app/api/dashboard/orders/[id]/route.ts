@@ -1,6 +1,6 @@
 // File: app/api/dashboard/orders/[id]/route.ts
 // Path: /app/api/dashboard/orders/[id]/route.ts
-// Description: Get order by ID for dashboard
+// Description: Get single order with employee info
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -8,23 +8,19 @@ import { requireManager } from '@/services/rbac.service'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    console.log('🔥 RAW PARAM:', params.id)
-
-    // 🔥 IMPORTANT: Require admin/manager role
+    const { id: orderId } = await context.params
+    
+    console.log('🔍 [Order Detail API] Order ID:', orderId)
+    
     await requireManager()
 
     const supabase = await createClient()
-    
-    // Clean the ID
-    const cleanId = decodeURIComponent(params.id).trim()
-    console.log('🧹 Cleaned ID:', cleanId)
 
-    // First, check if it's a UUID (dashboard uses UUID)
-    // or if it's an order number (ORD-2026-XXXX)
-    let query = supabase
+    // Get order with items
+    const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
@@ -36,92 +32,45 @@ export async function GET(
           total_price
         )
       `)
-
-    // Check if it's an order number (starts with ORD-)
-    if (cleanId.startsWith('ORD-')) {
-      query = query.eq('order_number', cleanId)
-    } else {
-      // Otherwise treat as UUID
-      query = query.eq('id', cleanId)
-    }
-
-    const { data, error } = await query.maybeSingle()
+      .eq('id', orderId)
+      .maybeSingle()
 
     if (error) {
-      console.error('❌ Supabase error:', error)
+      console.error('❌ [Order Detail API] Error:', error)
       return NextResponse.json(
-        { error: 'Database error' },
+        { error: error.message },
         { status: 500 }
       )
     }
 
     if (!data) {
-      console.error('❌ Not found for:', cleanId)
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
       )
     }
 
-    console.log('✅ Order found:', data.order_number)
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('❌ Error fetching order:', error)
-    return NextResponse.json(
-      { error: 'Error fetching order' },
-      { status: 500 }
-    )
-  }
-}
-
-// PATCH - Update order status
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    console.log('🔥 PATCH PARAM:', params.id)
-
-    await requireManager()
-
-    const supabase = await createClient()
-    const body = await request.json()
-    const { status } = body
-
-    if (!status) {
-      return NextResponse.json(
-        { error: 'Status is required' },
-        { status: 400 }
-      )
+    // 🔥 Get assigned employee name if exists
+    let assignedEmployeeName = null
+    if (data.assigned_to) {
+      const { data: employee } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', data.assigned_to)
+        .maybeSingle()
+      
+      assignedEmployeeName = employee?.full_name || null
     }
 
-    const cleanId = decodeURIComponent(params.id).trim()
-
-    // Update order status
-    const { data, error } = await supabase
-      .from('orders')
-      .update({ 
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cleanId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('❌ Update error:', error)
-      return NextResponse.json(
-        { error: 'Failed to update order' },
-        { status: 500 }
-      )
-    }
-
-    console.log('✅ Order updated:', data.order_number, '→', status)
-    return NextResponse.json(data)
+    console.log('✅ [Order Detail API] Order found:', data.order_number)
+    return NextResponse.json({
+      ...data,
+      assigned_employee_name: assignedEmployeeName
+    })
   } catch (error) {
-    console.error('❌ Error updating order:', error)
+    console.error('❌ [Order Detail API] Error:', error)
     return NextResponse.json(
-      { error: 'Failed to update order' },
+      { error: 'Failed to fetch order' },
       { status: 500 }
     )
   }

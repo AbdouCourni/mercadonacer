@@ -92,12 +92,7 @@ export default async function HomePage() {
       <section className="container-custom">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-accent-2 p-8 md:p-12 text-white">
           <div className="relative z-10 max-w-2xl">
-            <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              Livraison Gratuite
-            </h2>
-            <p className="text-lg opacity-90 mb-6">
-              Sur toutes vos commandes de plus de 200 DH
-            </p>
+           
             <Link href="/products">
               <Button 
                 size="lg"

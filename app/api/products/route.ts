@@ -28,21 +28,91 @@ function extractPublicId(url: string): string | null {
   }
 }
 
-// GET - Get products (list or single by id)
 export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const id = searchParams.get('id')
+  const slug = searchParams.get('slug')
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20
+  const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 0
+
   try {
-    await requireManager()
-
+    console.log('🔍 Products API called with:', { id, slug, limit, page })
+    
     const supabase = await createClient()
-    const searchParams = request.nextUrl.searchParams
-    const page = parseInt(searchParams.get('page') || '0')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const search = searchParams.get('search') || ''
-    const category = searchParams.get('category') || ''
-    const stock = searchParams.get('stock') || ''
-    const status = searchParams.get('status') || ''
+    
+    // 🔥 If ID is provided, fetch single product
+    if (id) {
+      console.log('🔍 Fetching product with ID:', id)
+      
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(id)) {
+        console.log('❌ Invalid UUID format:', id)
+        return NextResponse.json(
+          { error: 'Invalid product ID format' },
+          { status: 400 }
+        )
+      }
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories:category_id (
+            id,
+            name,
+            slug
+          )
+        `)
+        .eq('id', id)
+        .single()
 
-    let query = supabase
+      if (error) {
+        console.error('❌ Product fetch error:', error)
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        )
+      }
+
+      console.log('✅ Product found:', data?.name || 'Unknown')
+      return NextResponse.json(data)
+    }
+
+    // If slug is provided, fetch by slug
+    if (slug) {
+      console.log('🔍 Fetching product with slug:', slug)
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          categories:category_id (
+            id,
+            name,
+            slug
+          )
+        `)
+        .eq('slug', slug)
+        .single()
+
+      if (error) {
+        console.log('❌ Product not found with slug:', slug)
+        return NextResponse.json(
+          { error: 'Product not found' },
+          { status: 404 }
+        )
+      }
+
+      console.log('✅ Product found:', data?.name || 'Unknown')
+      return NextResponse.json(data)
+    }
+
+    // Otherwise, return list of products with categories
+    console.log('🔍 Fetching products list')
+    const from = page * limit
+    const to = from + limit - 1
+
+    const { data, error, count } = await supabase
       .from('products')
       .select(`
         *,
@@ -52,39 +122,13 @@ export async function GET(request: NextRequest) {
           slug
         )
       `, { count: 'exact' })
+      .range(from, to)
+      .order('created_at', { ascending: false })
 
-    // Apply filters
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`)
+    if (error) {
+      console.error('❌ Products list error:', error)
+      throw error
     }
-
-    if (category) {
-      query = query.eq('category_id', category)
-    }
-
-    if (stock === 'low') {
-      query = query.lt('stock', 10).gt('stock', 0)
-    } else if (stock === 'out') {
-      query = query.eq('stock', 0)
-    } else if (stock === 'in') {
-      query = query.gt('stock', 0)
-    }
-
-    if (status === 'active') {
-      query = query.eq('is_active', true)
-    } else if (status === 'inactive') {
-      query = query.eq('is_active', false)
-    }
-
-    query = query.order('created_at', { ascending: false })
-
-    const from = page * limit
-    const to = from + limit - 1
-    query = query.range(from, to)
-
-    const { data, error, count } = await query
-
-    if (error) throw error
 
     return NextResponse.json({
       products: data || [],
@@ -93,13 +137,85 @@ export async function GET(request: NextRequest) {
       limit
     })
   } catch (error) {
-    console.error('Dashboard products API error:', error)
+    console.error('❌ Public products API error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch products' },
       { status: 500 }
     )
   }
 }
+// GET - Get products (list or single by id)
+// export async function GET(request: NextRequest) {
+//   try {
+//     await requireManager()
+
+//     const supabase = await createClient()
+//     const searchParams = request.nextUrl.searchParams
+//     const page = parseInt(searchParams.get('page') || '0')
+//     const limit = parseInt(searchParams.get('limit') || '20')
+//     const search = searchParams.get('search') || ''
+//     const category = searchParams.get('category') || ''
+//     const stock = searchParams.get('stock') || ''
+//     const status = searchParams.get('status') || ''
+
+//     let query = supabase
+//       .from('products')
+//       .select(`
+//         *,
+//         categories:category_id (
+//           id,
+//           name,
+//           slug
+//         )
+//       `, { count: 'exact' })
+
+//     // Apply filters
+//     if (search) {
+//       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`)
+//     }
+
+//     if (category) {
+//       query = query.eq('category_id', category)
+//     }
+
+//     if (stock === 'low') {
+//       query = query.lt('stock', 10).gt('stock', 0)
+//     } else if (stock === 'out') {
+//       query = query.eq('stock', 0)
+//     } else if (stock === 'in') {
+//       query = query.gt('stock', 0)
+//     }
+
+//     if (status === 'active') {
+//       query = query.eq('is_active', true)
+//     } else if (status === 'inactive') {
+//       query = query.eq('is_active', false)
+//     }
+
+//     query = query.order('created_at', { ascending: false })
+
+//     const from = page * limit
+//     const to = from + limit - 1
+//     query = query.range(from, to)
+
+//     const { data, error, count } = await query
+
+//     if (error) throw error
+
+//     return NextResponse.json({
+//       products: data || [],
+//       count: count || 0,
+//       page,
+//       limit
+//     })
+//   } catch (error) {
+//     console.error('Dashboard products API error:', error)
+//     return NextResponse.json(
+//       { error: 'Failed to fetch products' },
+//       { status: 500 }
+//     )
+//   }
+// }
 
 // POST - Create product
 export async function POST(request: NextRequest) {
@@ -220,10 +336,9 @@ export async function DELETE(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const id = searchParams.get('id')
 
-
   if (!id) {
     return NextResponse.json(
-      { error: 'Product ID is required' },
+      { error: 'Product ID is required', received_id: id },
       { status: 400 }
     )
   }
@@ -232,7 +347,6 @@ export async function DELETE(request: NextRequest) {
     const supabase = await createClient()
     
     // 1. Get product images
-    console.log('🗑️ [DELETE] Fetching product...')
     const { data: product, error: fetchError } = await supabase
       .from('products')
       .select('id, name, images')
@@ -240,72 +354,72 @@ export async function DELETE(request: NextRequest) {
       .single()
 
     if (fetchError) {
-      console.error('❌ Fetch error:', fetchError)
       // Continue with deletion even if we can't get images
-    } else {
-      console.log('🗑️ [DELETE] Product:', product?.name)
-      console.log('🗑️ [DELETE] Images count:', product?.images?.length || 0)
     }
 
     // 2. Delete images from Cloudinary
     if (product?.images && product.images.length > 0) {
-      console.log('🗑️ [DELETE] Deleting images from Cloudinary...')
-      
       for (const imageUrl of product.images) {
         const publicId = extractPublicId(imageUrl)
         
-        console.log('📸 URL:', imageUrl)
-        console.log('📸 Extracted publicId:', publicId)
-        
         if (publicId) {
           try {
-            console.log(`🗑️ [DELETE] Deleting: ${publicId}`)
-            
-            // Delete directly from Cloudinary
             const result = await cloudinary.uploader.destroy(publicId)
-            console.log('📊 Cloudinary result:', result)
             
             if (result.result === 'ok') {
-              console.log(`✅ [DELETE] Deleted from Cloudinary: ${publicId}`)
+              // Deleted successfully
             } else if (result.result === 'not found') {
-              console.log(`⚠️ [DELETE] Image not found on Cloudinary: ${publicId}`)
-            } else {
-              console.error(`❌ [DELETE] Cloudinary error:`, result)
+              // Image not found on Cloudinary
             }
           } catch (error) {
-            console.error(`❌ [DELETE] Error deleting ${publicId}:`, error)
+            // Log Cloudinary error in response
+            return NextResponse.json(
+              { 
+                error: 'Cloudinary deletion failed',
+                product_id: id,
+                image_url: imageUrl,
+                public_id: publicId,
+                cloudinary_error: error instanceof Error ? error.message : String(error)
+              },
+              { status: 500 }
+            )
           }
-        } else {
-          console.log(`⚠️ [DELETE] Could not extract publicId from: ${imageUrl}`)
         }
       }
-    } else {
-      console.log('⚠️ [DELETE] No images to delete')
     }
 
     // 3. Delete product from database
-    console.log('🗑️ [DELETE] Deleting product from database...')
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id)
 
     if (error) {
-      console.error('❌ DB error:', error)
       return NextResponse.json(
-        { error: 'Failed to delete product' },
+        { 
+          error: 'Failed to delete product from database',
+          product_id: id,
+          db_error: error.message,
+          db_code: error.code,
+          db_details: error.details,
+          db_hint: error.hint
+        },
         { status: 500 }
       )
     }
 
-    console.log('✅ [DELETE] Product deleted successfully!')
-    console.log('========================================')
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true, 
+      deleted_product_id: id 
+    })
   } catch (error) {
-    console.error('❌ [DELETE] Error:', error)
-    console.log('========================================')
     return NextResponse.json(
-      { error: 'Failed to delete product' },
+      { 
+        error: 'Failed to delete product',
+        product_id: id,
+        exception: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

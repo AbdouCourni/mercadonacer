@@ -16,10 +16,11 @@ import {
   Package,
   LayoutDashboard,
   Heart as HeartIcon,
+  Truck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUser, signOut } from '@/services/auth.service'
-import { getGuestCartCount } from '@/services/cart.client.service'
+import { getGuestCartCount, getGuestCart } from '@/services/cart.client.service'
 import { createClient } from '@/lib/supabase/client'
 
 interface Category {
@@ -31,7 +32,7 @@ interface Category {
 export default function Header() {
   const pathname = usePathname()
   const router = useRouter()
-  
+
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -84,78 +85,79 @@ export default function Header() {
   // ============================================
 
   const debugUserRole = async () => {
-  try {
-    console.log('🔍 [DEBUG] Starting role check...')
-    
-    // 1. Check if user is logged in
-    const user = await getUser()
-    console.log('👤 [DEBUG] User:', user?.email || 'Not logged in')
-    
-    if (!user) {
-      console.log('❌ [DEBUG] No user found')
-      return
-    }
-    
-    // 2. Try to fetch role from API
-    console.log('🔍 [DEBUG] Fetching role from /api/user/role...')
     try {
-      const response = await fetch('/api/user/role')
-      console.log('📡 [DEBUG] Role API status:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ [DEBUG] Role from API:', data.role)
-        setUserRole(data.role)
+      console.log('🔍 [DEBUG] Starting role check...')
+
+      // 1. Check if user is logged in
+      const user = await getUser()
+      console.log('👤 [DEBUG] User:', user?.email || 'Not logged in')
+
+      if (!user) {
+        console.log('❌ [DEBUG] No user found')
         return
-      } else {
-        const errorText = await response.text()
-        console.error('❌ [DEBUG] Role API error:', response.status, errorText)
       }
-    } catch (err) {
-      console.error('❌ [DEBUG] Role API fetch error:', err)
-    }
-    
-    // 3. Fallback: Get role directly from Supabase
-    console.log('🔍 [DEBUG] Fallback: Getting role directly from Supabase...')
-    try {
-      const supabase = createClient()
-      const { data: userRoleData } = await supabase
-        .from('user_roles')
-        .select(`
+
+      // 2. Try to fetch role from API
+      console.log('🔍 [DEBUG] Fetching role from /api/user/role...')
+      try {
+        const response = await fetch('/api/user/role')
+        console.log('📡 [DEBUG] Role API status:', response.status)
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('✅ [DEBUG] Role from API:', data.role)
+          setUserRole(data.role)
+          return
+        } else {
+          const errorText = await response.text()
+          console.error('❌ [DEBUG] Role API error:', response.status, errorText)
+        }
+      } catch (err) {
+        console.error('❌ [DEBUG] Role API fetch error:', err)
+      }
+
+      // 3. Fallback: Get role directly from Supabase
+      console.log('🔍 [DEBUG] Fallback: Getting role directly from Supabase...')
+      try {
+        const supabase = createClient()
+        const { data: userRoleData } = await supabase
+          .from('user_roles')
+          .select(`
           role_id,
           roles!inner (
             name
           )
         `)
-        .eq('user_id', user.id)
-        .maybeSingle()
-      
-      console.log('📊 [DEBUG] Direct role data:', JSON.stringify(userRoleData, null, 2))
-      
-      let role = 'user'
-      if (userRoleData) {
-        const rolesArray = userRoleData.roles as { name: string }[]
-        if (rolesArray && rolesArray.length > 0) {
-          role = rolesArray[0].name
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        console.log('📊 [DEBUG] Direct role data:', JSON.stringify(userRoleData, null, 2))
+
+        let role = 'user'
+        if (userRoleData) {
+          const rolesArray = userRoleData.roles as { name: string }[]
+          if (rolesArray && rolesArray.length > 0) {
+            role = rolesArray[0].name
+          }
         }
+        console.log('✅ [DEBUG] Role from direct query:', role)
+        setUserRole(role)
+      } catch (err) {
+        console.error('❌ [DEBUG] Direct query error:', err)
       }
-      console.log('✅ [DEBUG] Role from direct query:', role)
-      setUserRole(role)
-    } catch (err) {
-      console.error('❌ [DEBUG] Direct query error:', err)
+    } catch (error) {
+      console.error('❌ [DEBUG] Debug function error:', error)
     }
-  } catch (error) {
-    console.error('❌ [DEBUG] Debug function error:', error)
   }
-}
-  
+
   // 🔥 Function to fetch cart count
   const fetchCartCount = async () => {
     try {
       const user = await getUser()
       let count = 0
-      
+
       if (user) {
+        // Logged in user - fetch from API
         const response = await fetch('/api/cart')
         if (response.ok) {
           const data = await response.json()
@@ -163,16 +165,16 @@ export default function Header() {
           console.log('📦 Cart count from API:', count)
         }
       } else {
+        // 🔥 Guest user - get from localStorage
         count = getGuestCartCount()
-        console.log('📦 Cart count from localStorage:', count)
+        console.log('📦 Guest cart count from localStorage:', count)
+        console.log('📦 Guest cart items:', getGuestCart())
       }
-      
-      // 🔥 Update state
+
+      console.log('📦 Setting cart count to:', count)
       setCartCount(count)
-      console.log('📦 setCartCount called with:', count)
-      
     } catch (error) {
-      console.error('Error updating cart count:', error)
+      console.error('Error fetching cart count:', error)
     }
   }
 
@@ -181,26 +183,44 @@ export default function Header() {
     console.log('🛒 cartCount state changed to:', cartCount)
   }, [cartCount])
 
- useEffect(() => {
-  const checkAuth = async () => {
-    try {
-      const user = await getUser()
-      setIsLoggedIn(!!user)
-      if (user) {
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur')
-        setUserEmail(user.email || '')
-        
-        // 🔥 Debug: Check user role
-        await debugUserRole()
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const user = await getUser()
+        setIsLoggedIn(!!user)
+        if (user) {
+          setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur')
+          setUserEmail(user.email || '')
+          await debugUserRole()
+        }
+      } catch (error) {
+        console.error('Auth error:', error)
+        setIsLoggedIn(false)
       }
-    } catch (error) {
-      console.error('Auth error:', error)
-      setIsLoggedIn(false)
     }
-  }
 
-  checkAuth()
-}, [])
+    checkAuth()
+    fetchCartCount() // ✅ This runs on mount
+
+    // Listen for cart updates
+    const handleCartUpdate = () => {
+      console.log('🔄 Cart update event received in header')
+      fetchCartCount()
+    }
+
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+  }, []) // ✅ Empty dependency array - runs once on mount
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      console.log('🔄 Cart update event received in header')
+      fetchCartCount() // This should fetch the new count
+    }
+
+    window.addEventListener('cartUpdated', handleCartUpdate)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+  }, [])
 
   // ============================================
   // SCROLL EFFECT
@@ -229,7 +249,7 @@ export default function Header() {
   // ============================================
   // HANDLERS
   // ============================================
-  
+
   const handleLogout = async () => {
     try {
       await signOut()
@@ -263,16 +283,15 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
           ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-border/50'
           : 'bg-white border-b border-border/30'
-      }`}
+        }`}
     >
       {/* Top bar */}
       <div className="hidden lg:block bg-gradient-to-r from-primary to-primary/90 text-white text-xs py-1.5">
         <div className="container-custom flex justify-between items-center">
-          <span className="opacity-95">🛒 Livraison gratuite à partir de 200 DH</span>
+         
           <div className="flex items-center gap-4">
             <Link href="/about" className="hover:underline hover:opacity-80 transition-opacity">
               À propos
@@ -346,74 +365,83 @@ export default function Header() {
             </Link>
 
             {/* Auth / User */}
-         {isLoggedIn ? (
-  <div className="relative group">
-    <button className="p-1.5 hover:bg-muted rounded-full transition-colors flex items-center gap-1.5">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center text-white text-sm font-bold">
-        {getInitials(userName)}
-      </div>
-      <span className="text-sm hidden lg:inline text-text-primary max-w-[80px] truncate">
-        {userName}
-      </span>
-      <ChevronDown size={14} className="text-text-secondary hidden lg:block" />
-    </button>
+            {isLoggedIn ? (
+              <div className="relative group">
+                <button className="p-1.5 hover:bg-muted rounded-full transition-colors flex items-center gap-1.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center text-white text-sm font-bold">
+                    {getInitials(userName)}
+                  </div>
+                  <span className="text-sm hidden lg:inline text-text-primary max-w-[80px] truncate">
+                    {userName}
+                  </span>
+                  <ChevronDown size={14} className="text-text-secondary hidden lg:block" />
+                </button>
 
-    {/* Dropdown */}
-    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1">
-      <div className="px-4 py-2 border-b border-border">
-        <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
-        <p className="text-xs text-text-secondary truncate">{userEmail}</p>
-      </div>
-      
-      {/* 🔥 admin Link - Only for authorized users */}
-      {['superadmin', 'admin', 'manager', 'employee'].includes(userRole) && (
-        <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary">
-          <LayoutDashboard size={16} />
-          Tableau de bord
-        </Link>
-      )}
-      
-      <Link href="/account" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
-        <UserCircle size={16} />
-        Mon compte
-      </Link>
-      <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
-        <Package size={16} />
-        Mes commandes
-      </Link>
-      <Link href="/wishlist" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
-        <HeartIcon size={16} />
-        Ma liste d'envies
-      </Link>
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-muted transition-colors text-sm text-red-600 border-t border-border mt-1 pt-2"
-      >
-        <LogOut size={16} />
-        Se déconnecter
-      </button>
-    </div>
-  </div>
-) : (
-  <Link href="/login">
-    <button className="p-2 hover:bg-muted rounded-full transition-colors">
-      <User size={20} className="text-text-secondary hover:text-primary transition-colors" />
-    </button>
-  </Link>
-)}
+                {/* Dropdown */}
+                {/* Dropdown */}
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1">
+                  <div className="px-4 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
+                    <p className="text-xs text-text-secondary truncate">{userEmail}</p>
+                  </div>
+
+                  {/* 🔥 Dashboard Link - For superadmin, admin, manager, employee */}
+                  {['superadmin', 'admin', 'manager', 'employee'].includes(userRole) && (
+                    <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary">
+                      <LayoutDashboard size={16} />
+                      Tableau de bord
+                    </Link>
+                  )}
+
+                  {/* 🔥 Driver Dashboard Link - For driver role only */}
+                  {userRole === 'driver' && (
+                    <Link href="/admin/driver/orders" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary">
+                      <Truck size={16} />
+                      Mes livraisons
+                    </Link>
+                  )}
+
+                  <Link href="/account" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <UserCircle size={16} />
+                    Mon compte
+                  </Link>
+                  <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <Package size={16} />
+                    Mes commandes
+                  </Link>
+                  <Link href="/wishlist" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <HeartIcon size={16} />
+                    Ma liste d'envies
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-muted transition-colors text-sm text-red-600 border-t border-border mt-1 pt-2"
+                  >
+                    <LogOut size={16} />
+                    Se déconnecter
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link href="/login">
+                <button className="p-2 hover:bg-muted rounded-full transition-colors">
+                  <User size={20} className="text-text-secondary hover:text-primary transition-colors" />
+                </button>
+              </Link>
+            )}
 
             {/* Cart */}
-  <Link 
-  href="/cart" 
-  className="relative inline-flex items-center p-2 hover:bg-muted rounded-full transition-colors"
->
-  <ShoppingCart size={20} className="text-text-secondary hover:text-primary transition-colors" />
-  {cartCount > 0 && (
-    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md px-1.5 z-10">
-      {cartCount > 99 ? '99+' : cartCount}
-    </span>
-  )}
-</Link>
+            <Link
+              href="/cart"
+              className="relative inline-flex items-center p-2 hover:bg-muted rounded-full transition-colors"
+            >
+              <ShoppingCart size={20} className="text-text-secondary hover:text-primary transition-colors" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md px-1.5 z-10">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* Mobile menu toggle */}
             <button
@@ -455,11 +483,10 @@ export default function Header() {
             <li>
               <Link
                 href="/"
-                className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap ${
-                  pathname === '/'
+                className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap ${pathname === '/'
                     ? 'bg-primary text-white hover:bg-primary/90'
                     : 'text-text-secondary hover:text-primary hover:bg-primary/10'
-                }`}
+                  }`}
               >
                 Accueil
               </Link>
@@ -475,11 +502,10 @@ export default function Header() {
                 <li key={cat.id}>
                   <Link
                     href={`/categories/${cat.slug}`}
-                    className={`px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${
-                      isCategoryActive(cat.slug)
+                    className={`px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${isCategoryActive(cat.slug)
                         ? 'bg-primary text-white hover:bg-primary/90'
                         : 'text-text-secondary hover:text-primary hover:bg-primary/10'
-                    }`}
+                      }`}
                   >
                     {cat.name}
                   </Link>
@@ -490,11 +516,10 @@ export default function Header() {
               <li>
                 <Link
                   href="/categories"
-                  className={`px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${
-                    pathname === '/categories'
+                  className={`px-4 py-1.5 rounded-full transition-colors whitespace-nowrap ${pathname === '/categories'
                       ? 'bg-primary text-white hover:bg-primary/90'
                       : 'text-text-secondary hover:text-primary hover:bg-primary/10'
-                  }`}
+                    }`}
                 >
                   Plus...
                 </Link>
@@ -530,11 +555,10 @@ export default function Header() {
                 <div className="grid grid-cols-2 gap-2">
                   <Link
                     href="/"
-                    className={`px-4 py-3 rounded-xl text-sm transition-colors ${
-                      pathname === '/'
+                    className={`px-4 py-3 rounded-xl text-sm transition-colors ${pathname === '/'
                         ? 'bg-primary text-white'
                         : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                    }`}
+                      }`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Accueil
@@ -548,11 +572,10 @@ export default function Header() {
                       <Link
                         key={cat.id}
                         href={`/categories/${cat.slug}`}
-                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${
-                          isCategoryActive(cat.slug)
+                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${isCategoryActive(cat.slug)
                             ? 'bg-primary text-white'
                             : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                        }`}
+                          }`}
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {cat.name}
@@ -565,7 +588,7 @@ export default function Header() {
               <div className="border-t border-border pt-4 space-y-3">
   {isLoggedIn ? (
     <>
-      {/* 🔥 Dashboard Link - Only for authorized users */}
+      {/* Dashboard Link - For superadmin, admin, manager, employee */}
       {['superadmin', 'admin', 'manager', 'employee'].includes(userRole) && (
         <Link
           href="/admin"
@@ -576,7 +599,19 @@ export default function Header() {
           Tableau de bord
         </Link>
       )}
-      
+
+      {/* 🔥 Driver Dashboard Link - For driver role only */}
+      {userRole === 'driver' && (
+        <Link
+          href="/admin/driver/orders"
+          className="flex items-center gap-2 py-2 text-primary font-medium hover:text-primary/80 transition-colors"
+          onClick={() => setIsMenuOpen(false)}
+        >
+          <Truck size={18} />
+          Mes livraisons
+        </Link>
+      )}
+
       <Link
         href="/account"
         className="flex items-center gap-2 py-2 text-text-secondary hover:text-primary transition-colors"

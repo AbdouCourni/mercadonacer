@@ -1,78 +1,184 @@
-import { Button } from '../../../components/ui/button'
+// File: app/(shop)/about/page.tsx
+// Path: /app/(shop)/about/page.tsx
+// Description: About Us page
+
 import Link from 'next/link'
+import { ArrowLeft, Store, Target, Heart, Users, MapPin, Mail, Phone } from 'lucide-react'
+
+export const metadata = {
+  title: 'À propos | Mercado Nacer',
+  description: 'Découvrez notre histoire et notre mission',
+}
 
 export default function AboutPage() {
   return (
-    <div className="container-custom py-12">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-text-primary">
-            À propos de <span className="text-gradient">Magasin</span>
-          </h1>
-          <p className="text-xl text-text-secondary mt-4">
-            Votre supermarché en ligne de confiance au Maroc
-          </p>
-        </div>
+    <div className="container-custom py-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/" className="p-2 hover:bg-muted rounded-lg transition-colors">
+          <ArrowLeft size={20} />
+        </Link>
+        <h1 className="text-3xl font-bold text-text-primary flex items-center gap-2">
+          <Store className="text-primary" size={28} />
+          À propos de nous
+        </h1>
+      </div>
 
-        {/* Story */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border border-border/50 mb-8">
-          <h2 className="text-2xl font-bold text-text-primary mb-4">
-            Notre Histoire
+      {/* Hero */}
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-8 mb-8 border border-primary/20">
+        <h2 className="text-2xl font-bold text-text-primary mb-3">
+          Bienvenue chez Mercado Nacer 🛍️
+        </h2>
+        <p className="text-text-secondary leading-relaxed">
+          Votre boutique en ligne de confiance à Nador et dans toute la région. 
+          Nous vous proposons une large gamme de produits de qualité, livrés rapidement 
+          à votre porte.
+        </p>
+      </div>
+
+      <div className="space-y-8">
+        {/* Our Story */}
+        <section className="bg-white rounded-xl border border-border p-8">
+          <h2 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+            <Heart size={20} className="text-primary" />
+            Notre histoire
           </h2>
-          <p className="text-text-secondary leading-relaxed mb-4">
-            Fondé en 2024, Magasin est né d'une vision simple : rendre les courses 
-            quotidiennes plus faciles et plus agréables pour les familles marocaines.
-          </p>
-          <p className="text-text-secondary leading-relaxed">
-            Nous croyons que faire ses courses devrait être un plaisir, pas une corvée. 
-            C'est pourquoi nous proposons plus de 5000 produits de qualité, des fruits 
-            frais aux appareils électroménagers, le tout livré directement à votre porte.
-          </p>
-        </div>
+          <div className="space-y-3 text-text-secondary leading-relaxed">
+            <p>
+              Mercado Nacer est né d'une idée simple: rendre le shopping en ligne 
+              accessible à tous, avec un service de qualité et une livraison rapide.
+            </p>
+            <p>
+              Basés à Nador, nous connaissons les besoins de notre communauté et 
+              nous nous engageons à vous offrir les meilleurs produits aux meilleurs prix.
+            </p>
+            <p>
+              Chaque commande est préparée avec soin par notre équipe et livrée 
+              dans un délai de 24 à 48 heures.
+            </p>
+          </div>
+        </section>
 
-        {/* Values */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="text-center p-6 bg-muted rounded-2xl">
-            <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center text-3xl mb-4">
-              🥬
-            </div>
-            <h3 className="font-bold text-text-primary mb-2">Produits Frais</h3>
-            <p className="text-sm text-text-secondary">
-              Sélectionnés avec soin pour garantir la meilleure qualité
-            </p>
-          </div>
-          <div className="text-center p-6 bg-muted rounded-2xl">
-            <div className="w-16 h-16 mx-auto bg-secondary/10 rounded-full flex items-center justify-center text-3xl mb-4">
-              🚚
-            </div>
-            <h3 className="font-bold text-text-primary mb-2">Livraison Rapide</h3>
-            <p className="text-sm text-text-secondary">
-              Recevez vos courses en 24h dans tout le Maroc
-            </p>
-          </div>
-          <div className="text-center p-6 bg-muted rounded-2xl">
-            <div className="w-16 h-16 mx-auto bg-accent/10 rounded-full flex items-center justify-center text-3xl mb-4">
-              💰
-            </div>
-            <h3 className="font-bold text-text-primary mb-2">Prix Compétitifs</h3>
-            <p className="text-sm text-text-secondary">
-              Les meilleurs prix du marché, sans compromis sur la qualité
-            </p>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="text-center bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-text-primary mb-4">
-            Prêt à faire vos courses ?
+        {/* Our Mission */}
+        <section className="bg-white rounded-xl border border-border p-8">
+          <h2 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+            <Target size={20} className="text-primary" />
+            Notre mission
           </h2>
-          <Link href="/products">
-            <Button size="lg" className="bg-primary text-white hover:bg-primary/90">
-              Découvrir nos produits
-            </Button>
-          </Link>
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-2xl mb-2">⚡</div>
+              <h3 className="font-semibold text-blue-800 mb-1">Rapidité</h3>
+              <p className="text-sm text-blue-700">
+                Livraison en 24-48h dans toute la région
+              </p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-2xl mb-2">✨</div>
+              <h3 className="font-semibold text-green-800 mb-1">Qualité</h3>
+              <p className="text-sm text-green-700">
+                Produits sélectionnés avec soin
+              </p>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-2xl mb-2">🤝</div>
+              <h3 className="font-semibold text-purple-800 mb-1">Confiance</h3>
+              <p className="text-sm text-purple-700">
+                Paiement à la livraison disponible
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Why Choose Us */}
+        <section className="bg-white rounded-xl border border-border p-8">
+          <h2 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
+            <Users size={20} className="text-primary" />
+            Pourquoi nous choisir ?
+          </h2>
+          <div className="space-y-3 text-text-secondary">
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 mt-0.5">✓</span>
+                <span><strong>Paiement à la livraison</strong> - Payez quand vous recevez votre commande</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 mt-0.5">✓</span>
+                <span><strong>Livraison rapide</strong> - 24 à 48 heures ouvrables</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 mt-0.5">✓</span>
+                <span><strong>Service client réactif</strong> - Nous sommes joignables par WhatsApp</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 mt-0.5">✓</span>
+                <span><strong>Produits de qualité</strong> - Sélectionnés avec soin</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 mt-0.5">✓</span>
+                <span><strong>Prix compétitifs</strong> - Les meilleurs prix du marché</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Contact */}
+        <section className="bg-white rounded-xl border border-border p-8">
+          <h2 className="text-xl font-bold text-text-primary mb-4">Contactez-nous</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-start gap-3">
+              <MapPin size={20} className="text-primary flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-medium text-text-primary">Adresse</p>
+                <p className="text-sm text-text-secondary">
+                  [Votre adresse]<br />
+                  Nador, Maroc
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Phone size={20} className="text-primary flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-medium text-text-primary">Téléphone</p>
+                <a href="tel:+212XXXXXXXXX" className="text-sm text-primary hover:underline">
+                  +212 6XX XXX XXX
+                </a>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Mail size={20} className="text-primary flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-medium text-text-primary">Email</p>
+                <a href="mailto:contact@mercadonacer.com" className="text-sm text-primary hover:underline">
+                  contact@mercadonacer.com
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* Links */}
+      <div className="mt-6 flex flex-wrap gap-3 justify-center">
+        <Link href="/privacy" className="text-sm text-primary hover:underline">
+          Politique de confidentialité
+        </Link>
+        <span className="text-text-secondary">•</span>
+        <Link href="/terms" className="text-sm text-primary hover:underline">
+          Conditions d'utilisation
+        </Link>
+        <span className="text-text-secondary">•</span>
+        <Link href="/legal" className="text-sm text-primary hover:underline">
+          Mentions légales
+        </Link>
+        <span className="text-text-secondary">•</span>
+        <Link href="/refund" className="text-sm text-primary hover:underline">
+          Politique de retour
+        </Link>
+        <span className="text-text-secondary">•</span>
+        <Link href="/delivery" className="text-sm text-primary hover:underline">
+          Politique de livraison
+        </Link>
       </div>
     </div>
   )

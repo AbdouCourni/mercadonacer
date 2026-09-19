@@ -8,6 +8,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getOptimizedImage } from '@/lib/cloudinary'
+
 
 interface ProductGalleryProps {
   images: string[]
@@ -52,7 +54,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
         onClick={() => setIsZoomed(!isZoomed)}
       >
         <Image
-          src={images[currentIndex] || '/images/placeholder.jpg'}
+          src={getOptimizedImage(images[currentIndex], { width: 800, height: 800 }) || '/images/placeholder.jpg'}
           alt={name}
           fill
           className={cn(

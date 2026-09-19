@@ -1,86 +1,60 @@
 // File: app/api/dashboard/drivers/[id]/route.ts
 // Path: /app/api/dashboard/drivers/[id]/route.ts
-// Description: Single driver management API
+// Description: Get driver info from profiles
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireManager } from '@/services/rbac.service'
 
-// GET - Get single driver
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireManager()
-
+    // In Next.js 15, params is a Promise that needs to be awaited
+    const { id } = await params
+    
+    console.log('🔍 [API] Fetch driver ID:', id)
+    
     const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('delivery_drivers')
-      .select('*')
-      .eq('id', params.id)
-      .single()
-
-    if (error) throw error
-    return NextResponse.json(data)
-  } catch (error) {
-    console.error('Driver fetch error:', error)
-    return NextResponse.json(
-      { error: 'Driver not found' },
-      { status: 404 }
-    )
-  }
-}
-
-// PATCH - Update driver
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await requireManager()
-
-    const supabase = await createClient()
-    const body = await request.json()
+    console.log('✅ [API] Supabase client created')
 
     const { data, error } = await supabase
-      .from('delivery_drivers')
-      .update(body)
-      .eq('id', params.id)
-      .select()
-      .single()
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        phone,
+        address,
+        city,
+        driver_zone,
+        is_active,
+        preferred_language
+      `)
+      .eq('id', id)
+      .maybeSingle()
 
-    if (error) throw error
+    console.log('📦 [API] Query result:', { data, error })
+
+    if (error) {
+      console.error('❌ [API] Supabase error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (!data) {
+      console.log('⚠️ [API] No driver found for ID:', id)
+      return NextResponse.json(
+        { error: 'Driver not found' },
+        { status: 404 }
+      )
+    }
+
+    console.log('✅ [API] Driver found:', data.full_name)
     return NextResponse.json(data)
+    
   } catch (error) {
-    console.error('Driver update error:', error)
+    console.error('❌ [API] Driver fetch error:', error)
     return NextResponse.json(
-      { error: 'Failed to update driver' },
-      { status: 500 }
-    )
-  }
-}
-
-// DELETE - Delete driver
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await requireManager()
-
-    const supabase = await createClient()
-    const { error } = await supabase
-      .from('delivery_drivers')
-      .delete()
-      .eq('id', params.id)
-
-    if (error) throw error
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Driver delete error:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete driver' },
+      { error: 'Failed to fetch driver' },
       { status: 500 }
     )
   }

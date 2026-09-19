@@ -12,6 +12,7 @@ import RelatedProducts from '@/components/product/related-products'
 import ProductReviews from '@/components/product/product-reviews'
 import { ChevronRight, Home } from 'lucide-react'
 
+
 interface ProductPageProps {
   params: {
     slug: string

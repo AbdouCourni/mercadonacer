@@ -118,10 +118,16 @@ export async function clearCartClient(userId: string) {
 // ============================================
 
 export function getGuestCart(): any[] {
-  if (typeof window === 'undefined') return []
+  if (typeof window === 'undefined') {
+    console.log('⚠️ getGuestCart called on server')
+    return []
+  }
   try {
-    return JSON.parse(localStorage.getItem('cart') || '[]')
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]')
+    console.log('📦 getGuestCart - items:', cart)
+    return cart
   } catch {
+    console.log('⚠️ getGuestCart - error parsing, returning []')
     return []
   }
 }
@@ -178,5 +184,27 @@ export function clearGuestCart() {
 
 export function getGuestCartCount(): number {
   const cart = getGuestCart()
-  return cart.reduce((total: number, item: any) => total + item.quantity, 0)
+  const count = cart.reduce((total: number, item: any) => total + item.quantity, 0)
+  console.log('📦 getGuestCartCount:', count)
+  return count
+}
+
+export async function mergeGuestCart(userId: string) {
+  const guestItems = getGuestCart()
+  
+  if (guestItems.length === 0) {
+    console.log('📦 No guest items to merge')
+    return
+  }
+
+  console.log('📦 Merging guest items:', guestItems)
+
+  // Add each guest item to user's cart
+  for (const item of guestItems) {
+    await addToCartClient(userId, item.productId, item.quantity, item.variantId)
+  }
+
+  // Clear guest cart
+  clearGuestCart()
+  console.log('✅ Guest cart merged and cleared')
 }

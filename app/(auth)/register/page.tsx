@@ -11,6 +11,8 @@ import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoogleIcon } from '@/components/ui/google-icon'
 import { signUp, signInWithGoogle } from '@/services/auth.service'
+import { mergeGuestCart } from '@/services/cart.client.service'
+import { getUser } from '@/services/auth.service'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -23,47 +25,56 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+  e.preventDefault()
+  setError(null)
+  setLoading(true)
 
-    // Validate
-    if (!fullName.trim()) {
-      setError('Veuillez entrer votre nom complet')
-      setLoading(false)
-      return
-    }
-
-    if (!email.trim()) {
-      setError('Veuillez entrer votre email')
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères')
-      setLoading(false)
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas')
-      setLoading(false)
-      return
-    }
-
-    try {
-      console.log('📝 Registering:', { email, fullName })
-      await signUp(email, password, fullName)
-      console.log('✅ Registration successful')
-      router.push('/login?registered=true')
-    } catch (err: any) {
-      console.error('❌ Registration error:', err)
-      setError(err.message || 'Erreur lors de l\'inscription')
-    } finally {
-      setLoading(false)
-    }
+  // Validate
+  if (!fullName.trim()) {
+    setError('Veuillez entrer votre nom complet')
+    setLoading(false)
+    return
   }
+
+  if (!email.trim()) {
+    setError('Veuillez entrer votre email')
+    setLoading(false)
+    return
+  }
+
+  if (password.length < 6) {
+    setError('Le mot de passe doit contenir au moins 6 caractères')
+    setLoading(false)
+    return
+  }
+
+  if (password !== confirmPassword) {
+    setError('Les mots de passe ne correspondent pas')
+    setLoading(false)
+    return
+  }
+
+  try {
+    console.log('📝 Registering:', { email, fullName })
+    await signUp(email, password, fullName)
+    console.log('✅ Registration successful')
+    
+    // 🔥 After successful signup, merge guest cart
+    const user = await getUser()
+    if (user) {
+      await mergeGuestCart(user.id)
+      window.dispatchEvent(new Event('cartUpdated'))
+      console.log('✅ Guest cart merged after signup')
+    }
+    
+    router.push('/login?registered=true')
+  } catch (err: any) {
+    console.error('❌ Registration error:', err)
+    setError(err.message || 'Erreur lors de l\'inscription')
+  } finally {
+    setLoading(false)
+  }
+}
   const handleGoogleSignUp = async () => {
     setLoading(true)
     try {

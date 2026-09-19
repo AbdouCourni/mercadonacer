@@ -117,16 +117,12 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
       const data = await response.json()
 
-      if (response.ok) {
+    if (response.ok) {
   setSuccess('Produit ajouté au panier !')
-  dispatchCartUpdate() // 🔥 This updates the header count
+  dispatchCartUpdate() // 🔥 Make sure this is called
   router.refresh()
+  setTimeout(() => setSuccess(null), 3000)
 }
-
-      setSuccess('Produit ajouté au panier !')
-      router.refresh()
-      
-      setTimeout(() => setSuccess(null), 3000)
     } catch (error: any) {
       console.error('Error adding to cart:', error)
       setError(error.message || 'Erreur lors de l\'ajout au panier')

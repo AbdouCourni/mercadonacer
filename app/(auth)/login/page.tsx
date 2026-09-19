@@ -1,6 +1,6 @@
 // File: app/(auth)/login/page.tsx
 // Path: /app/(auth)/login/page.tsx
-// Description: Login page - Mobile-first responsive
+// Description: Login page with guest cart merge
 
 'use client'
 
@@ -10,7 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoogleIcon } from '@/components/ui/google-icon'
-import { signIn, signInWithGoogle } from '@/services/auth.service'
+import { signIn, signInWithGoogle, getUser } from '@/services/auth.service'
+import { mergeGuestCart } from '@/services/cart.client.service'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -47,6 +48,14 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password)
+      
+      // 🔥 After successful login, merge guest cart
+      const user = await getUser()
+      if (user) {
+        await mergeGuestCart(user.id)
+        window.dispatchEvent(new Event('cartUpdated'))
+      }
+      
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Email ou mot de passe incorrect')
@@ -59,6 +68,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signInWithGoogle()
+      // 🔥 Note: Google sign-in redirects, so cart merge happens in callback route
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la connexion avec Google')
       setLoading(false)
@@ -137,7 +147,7 @@ export default function LoginPage() {
 
         {/* Forgot Password */}
         <div className="text-right">
-          <Link href="/reset-password" className="text-sm text-primary hover:underline">
+          <Link href="/forgot-password" className="text-sm text-primary hover:underline">
             Mot de passe oublié ?
           </Link>
         </div>

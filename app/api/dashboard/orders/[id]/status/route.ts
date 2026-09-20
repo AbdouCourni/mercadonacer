@@ -33,9 +33,10 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ✅ Promise
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // Get authenticated user
@@ -91,7 +92,7 @@ export async function PATCH(
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('id, status, delivery_id, assigned_to')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (orderError || !order) {
@@ -228,7 +229,7 @@ export async function PATCH(
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 

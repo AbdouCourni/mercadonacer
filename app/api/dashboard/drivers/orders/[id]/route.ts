@@ -7,10 +7,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ✅ Promise
 ) {
   try {
-    const { id: orderId } = await context.params
+    const { id: orderId } = await params
     
     console.log('🔍 [Driver Order Detail API] Order ID:', orderId)
     

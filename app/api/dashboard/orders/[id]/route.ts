@@ -8,12 +8,11 @@ import { requireManager } from '@/services/rbac.service'
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: orderId } = await context.params
+    const { id } = await params
     
-    console.log('🔍 [Order Detail API] Order ID:', orderId)
     
     await requireManager()
 
@@ -32,7 +31,7 @@ export async function GET(
           total_price
         )
       `)
-      .eq('id', orderId)
+      .eq('id', id)
       .maybeSingle()
 
     if (error) {

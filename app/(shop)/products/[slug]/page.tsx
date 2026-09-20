@@ -11,6 +11,8 @@ import ProductInfo from '@/components/product/product-info'
 import RelatedProducts from '@/components/product/related-products'
 import ProductReviews from '@/components/product/product-reviews'
 import { ChevronRight, Home } from 'lucide-react'
+export const dynamic = 'force-dynamic'
+
 
 
 interface ProductPageProps {
@@ -20,12 +22,12 @@ interface ProductPageProps {
 }
 
 // Generate static paths for all products (ISR)
-export async function generateStaticParams() {
-  const { products } = await getProducts({ limit: 100 })
-  return products.map((product) => ({
-    slug: product.slug,
-  }))
-}
+// export async function generateStaticParams() {
+//   const { products } = await getProducts({ limit: 100 })
+//   return products.map((product) => ({
+//     slug: product.slug,
+//   }))
+// }
 
 export default async function ProductPage({ params }: ProductPageProps) {
   // Wait for params to be available

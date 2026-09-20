@@ -45,7 +45,7 @@ interface Product {
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
-  const productId = params.slug as string
+const productId = params.id as string
 
   console.log('📝 [EditProductPage] Full params:', params)
   console.log('📝 [EditProductPage] Product ID from params:', productId)

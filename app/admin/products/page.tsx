@@ -494,7 +494,8 @@ export default function ProductsPage() {
                       <p className="text-sm text-primary font-medium">{product.price.toFixed(2)} DH</p>
                     </div>
                     <div className="flex gap-1">
-                      <Link href={`/admin/products/${product.slug}/edit`}>
+                      <Link href={`/admin/products/${product.id}/edit`}>
+
                         <button className="p-2 hover:bg-muted rounded transition-colors">
                           <Edit size={16} className="text-blue-600" />
                         </button>

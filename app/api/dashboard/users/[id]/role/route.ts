@@ -7,15 +7,14 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 🔥 FIX: Get params correctly
-    const { id: userId } = await context.params
+    const { id } = await params
     
-    console.log('🔧 API called with userId:', userId)
+    console.log('🔧 API called with userId:', id)
 
-    if (!userId) {
+    if (!id) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -25,7 +24,7 @@ export async function PATCH(
     const body = await request.json()
     const { role } = body
 
-    console.log('🔧 Updating role for user:', userId, 'to:', role)
+    console.log('🔧 Updating role for user:', id, 'to:', role)
 
     if (!role) {
       return NextResponse.json(
@@ -57,18 +56,18 @@ export async function PATCH(
     const { data: existingRole } = await supabase
       .from('user_roles')
       .select('id, role_id')
-      .eq('user_id', userId)
+      .eq('user_id', id)
       .maybeSingle()
 
     let result
 
     if (existingRole) {
       // ✅ UPDATE existing role
-      console.log('🔄 Updating existing role for user:', userId)
+      console.log('🔄 Updating existing role for user:', id)
       const { data, error } = await supabase
         .from('user_roles')
         .update({ role_id: roleData.id })
-        .eq('user_id', userId)
+        .eq('user_id', id)
         .select()
         .single()
 
@@ -82,11 +81,11 @@ export async function PATCH(
       result = data
     } else {
       // ✅ INSERT new role (if no role exists)
-      console.log('📝 Creating new role for user:', userId)
+      console.log('📝 Creating new role for user:', id)
       const { data, error } = await supabase
         .from('user_roles')
         .insert({
-          user_id: userId,
+          user_id: id,
           role_id: roleData.id
         })
         .select()

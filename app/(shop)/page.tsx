@@ -8,6 +8,7 @@ import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getProducts } from '@/services/products.service'
+export const dynamic = 'force-dynamic'
 
 // Get categories (you can fetch these from Supabase too)
 const categories = [

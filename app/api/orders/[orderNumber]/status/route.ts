@@ -10,14 +10,15 @@ import { getCurrentUserRole } from '@/services/rbac.service'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { orderNumber: string } }
+    { params }: { params: Promise<{ orderNumber: string }> }  // ✅ Promise
+
 ) {
   try {
+    const { orderNumber } = await params
     const supabase = await createClient()
     const body = await request.json()
     const { status } = body
     
-    console.log('📝 Updating order status:', { orderNumber: params.orderNumber, status })
 
     if (!status) {
       return NextResponse.json(
@@ -32,7 +33,7 @@ export async function PATCH(
     const userRole = await getCurrentUserRole()
 
     // Get current order by order number
-    const cleanOrderNumber = decodeURIComponent(params.orderNumber).trim()
+    const cleanOrderNumber = decodeURIComponent(orderNumber).trim()
 
     const { data: order, error: orderError } = await supabase
       .from('orders')

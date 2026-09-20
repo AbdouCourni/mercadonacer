@@ -248,6 +248,7 @@ const nextConfig: NextConfig = {
 
   // Transpile packages if needed
   transpilePackages: ['lucide-react'],
+
 };
 
 export default nextConfig;

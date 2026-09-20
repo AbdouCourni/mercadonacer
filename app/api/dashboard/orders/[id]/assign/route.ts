@@ -7,9 +7,10 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ✅ Promise
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
     
     // Get authenticated user
@@ -68,7 +69,7 @@ if (!roleNames.includes('employee')) {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('id, status, assigned_to')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (orderError || !order) {
@@ -130,7 +131,7 @@ if (!roleNames.includes('employee')) {
     const { data: updatedOrder, error: updateError } = await supabase
       .from('orders')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 

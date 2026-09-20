@@ -7,13 +7,14 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderNumber: string } }
+    { params }: { params: Promise<{ orderNumber: string }> }  // ✅ Promise
+  
 ) {
   try {
-    console.log('🔥 RAW PARAM:', params.orderNumber)
+    const { orderNumber } = await params
 
     const supabase = await createClient()
-const cleanOrderNumber = decodeURIComponent(params.orderNumber).trim()
+const cleanOrderNumber = decodeURIComponent(orderNumber).trim()
 
 const { data, error } = await supabase
   .from('orders')

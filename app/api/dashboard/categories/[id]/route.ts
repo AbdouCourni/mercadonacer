@@ -9,16 +9,17 @@ import { requireManager } from '@/services/rbac.service'
 // GET - Get single category
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }  // ✅ Promise
 ) {
   try {
+    const { id } = await params  // ✅ Await
     await requireManager()
 
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('categories')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) throw error
@@ -35,15 +36,16 @@ export async function GET(
 // PATCH - Update a category
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     await requireManager()
 
     const supabase = await createClient()
     const body = await request.json()
 
-    console.log('📝 Updating category:', { id: params.id, ...body })
+    console.log('📝 Updating category:', { id, ...body })
 
     if (!body.name) {
       return NextResponse.json(
@@ -62,7 +64,7 @@ export async function PATCH(
       .from('categories')
       .select('id')
       .eq('slug', slug)
-      .neq('id', params.id)
+      .neq('id', id)
       .maybeSingle()
 
     if (existing) {
@@ -82,7 +84,7 @@ export async function PATCH(
         parent_id: body.parent_id || null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -108,13 +110,14 @@ export async function PATCH(
 // DELETE - Delete a category
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // 🔥 Log the ID to see what's coming
-    console.log('🗑️ Delete category called with params:', params)
+    console.log('🗑️ Delete category called with params:', { id })
     
-    const categoryId = params.id
+    const categoryId = id
     
     if (!categoryId || categoryId === 'undefined') {
       console.error('❌ Invalid category ID:', categoryId)

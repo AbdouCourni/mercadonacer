@@ -8,12 +8,12 @@ import { requireManager } from '@/services/rbac.service'
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: orderId } = await context.params
+    const { id } = await params
     
-    console.log('🔧 [Unassign Employee API] Order ID:', orderId)
+    console.log('🔧 [Unassign Employee API] Order ID:', id)
     
     await requireManager()
 
@@ -23,7 +23,7 @@ export async function POST(
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select('id, order_number')
-      .eq('id', orderId)
+      .eq('id', id)
       .single()
 
     if (orderError || !order) {
@@ -42,7 +42,7 @@ export async function POST(
         assigned_at: null,
         status: 'confirmed'  // Revert status
       })
-      .eq('id', orderId)
+      .eq('id', id)
       .select()
       .single()
 

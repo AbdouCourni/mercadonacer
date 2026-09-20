@@ -7,14 +7,13 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: userId } = await context.params
+    const { id } = await params
     
-    console.log('🔧 Toggle user called for:', userId)
 
-    if (!userId) {
+    if (!id) {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -42,7 +41,7 @@ export async function PATCH(
     const { data, error } = await supabase
       .from('profiles')
       .upsert({
-        id: userId,
+        id: id,
         is_active: is_active,
         updated_at: new Date().toISOString()
       })

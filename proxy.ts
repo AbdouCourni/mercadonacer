@@ -62,6 +62,11 @@ export async function proxy(request: NextRequest) {
     '/api/user/role',
     '/auth/callback',
     '/order/[id]',
+    '/privacy',
+    '/terms',
+    '/legal',
+    '/refund',
+    '/delivery',
   ]
   
   const isPublic = publicRoutes.some((route) => 

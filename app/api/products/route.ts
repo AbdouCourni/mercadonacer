@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
   const slug = searchParams.get('slug')
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20
   const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 0
+  const includeInactive = searchParams.get('includeInactive') === 'true'   // 🔥 NEW
 
   try {
-    console.log('🔍 Products API called with:', { id, slug, limit, page })
+    console.log('🔍 Products API called with:', { id, slug, limit, page, includeInactive })
     
     const supabase = await createClient()
     
@@ -44,7 +45,6 @@ export async function GET(request: NextRequest) {
     if (id) {
       console.log('🔍 Fetching product with ID:', id)
       
-      // Validate UUID format
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(id)) {
         console.log('❌ Invalid UUID format:', id)
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         )
       }
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -65,7 +65,13 @@ export async function GET(request: NextRequest) {
           )
         `)
         .eq('id', id)
-        .single()
+
+      // 🔥 Filter inactive products unless explicitly requested
+      if (!includeInactive) {
+        query = query.eq('is_active', true)
+      }
+
+      const { data, error } = await query.single()
 
       if (error) {
         console.error('❌ Product fetch error:', error)
@@ -82,7 +88,8 @@ export async function GET(request: NextRequest) {
     // If slug is provided, fetch by slug
     if (slug) {
       console.log('🔍 Fetching product with slug:', slug)
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('products')
         .select(`
           *,
@@ -93,7 +100,13 @@ export async function GET(request: NextRequest) {
           )
         `)
         .eq('slug', slug)
-        .single()
+
+      // 🔥 Filter inactive products unless explicitly requested
+      if (!includeInactive) {
+        query = query.eq('is_active', true)
+      }
+
+      const { data, error } = await query.single()
 
       if (error) {
         console.log('❌ Product not found with slug:', slug)
@@ -112,7 +125,7 @@ export async function GET(request: NextRequest) {
     const from = page * limit
     const to = from + limit - 1
 
-    const { data, error, count } = await supabase
+    let query = supabase
       .from('products')
       .select(`
         *,
@@ -122,6 +135,13 @@ export async function GET(request: NextRequest) {
           slug
         )
       `, { count: 'exact' })
+
+    // 🔥 Filter inactive products unless explicitly requested
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error, count } = await query
       .range(from, to)
       .order('created_at', { ascending: false })
 
@@ -144,78 +164,7 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-// GET - Get products (list or single by id)
-// export async function GET(request: NextRequest) {
-//   try {
-//     await requireManager()
 
-//     const supabase = await createClient()
-//     const searchParams = request.nextUrl.searchParams
-//     const page = parseInt(searchParams.get('page') || '0')
-//     const limit = parseInt(searchParams.get('limit') || '20')
-//     const search = searchParams.get('search') || ''
-//     const category = searchParams.get('category') || ''
-//     const stock = searchParams.get('stock') || ''
-//     const status = searchParams.get('status') || ''
-
-//     let query = supabase
-//       .from('products')
-//       .select(`
-//         *,
-//         categories:category_id (
-//           id,
-//           name,
-//           slug
-//         )
-//       `, { count: 'exact' })
-
-//     // Apply filters
-//     if (search) {
-//       query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`)
-//     }
-
-//     if (category) {
-//       query = query.eq('category_id', category)
-//     }
-
-//     if (stock === 'low') {
-//       query = query.lt('stock', 10).gt('stock', 0)
-//     } else if (stock === 'out') {
-//       query = query.eq('stock', 0)
-//     } else if (stock === 'in') {
-//       query = query.gt('stock', 0)
-//     }
-
-//     if (status === 'active') {
-//       query = query.eq('is_active', true)
-//     } else if (status === 'inactive') {
-//       query = query.eq('is_active', false)
-//     }
-
-//     query = query.order('created_at', { ascending: false })
-
-//     const from = page * limit
-//     const to = from + limit - 1
-//     query = query.range(from, to)
-
-//     const { data, error, count } = await query
-
-//     if (error) throw error
-
-//     return NextResponse.json({
-//       products: data || [],
-//       count: count || 0,
-//       page,
-//       limit
-//     })
-//   } catch (error) {
-//     console.error('Dashboard products API error:', error)
-//     return NextResponse.json(
-//       { error: 'Failed to fetch products' },
-//       { status: 500 }
-//     )
-//   }
-// }
 
 // POST - Create product
 export async function POST(request: NextRequest) {

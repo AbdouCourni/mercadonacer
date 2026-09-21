@@ -101,6 +101,9 @@ export default function ProductsPage() {
         params.append('page', String(pagination.page))
         params.append('limit', String(pagination.limit))
 
+        params.append('includeInactive', 'true')
+
+
         const response = await fetch(`/api/products?${params.toString()}`)
         
         if (!response.ok) {

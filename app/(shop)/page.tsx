@@ -8,26 +8,30 @@ import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getProducts } from '@/services/products.service'
+import { createClient } from '@/lib/supabase/server'
+
 export const dynamic = 'force-dynamic'
 
-// Get categories (you can fetch these from Supabase too)
-const categories = [
-  { id: 1, name: 'Fruits et Légumes Frais' },
-  { id: 2, name: 'Viandes et Poissons' },
-  { id: 3, name: 'Épicerie' },
-  { id: 4, name: 'Boissons' },
-  { id: 5, name: 'Maison et Cuisine' },
-  { id: 6, name: 'Électroménager' },
-  { id: 7, name: 'Jeux et Jouets' },
-  { id: 8, name: 'Cosmétique et Beauté' },
-]
 
 export default async function HomePage() {
-  // Fetch real products from Supabase
-  const { products } = await getProducts({ 
-    limit: 8,
-    sort: { by: 'created_at', asc: false }
-  })
+  const supabase = await createClient()
+
+  const [{ products }, categoriesResult] = await Promise.all([
+    getProducts({ 
+      limit: 8,
+      sort: { by: 'created_at', asc: false }
+    }),
+    supabase
+      .from('categories')
+      .select(`
+        *,
+        products:products (count)
+      `)
+      .order('name')
+      .limit(8)
+  ])
+
+  const categories = categoriesResult.data || []
 
   return (
     <div className="space-y-12 pb-12">
@@ -50,9 +54,19 @@ export default async function HomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {categories.map((category) => (
-            <CategoryCard key={category.id} {...category} productCount={Math.floor(Math.random() * 100) + 10} />
-          ))}
+         {categories.map((category: any) => {
+  const productCount = category.products?.[0]?.count || 0
+  return (
+    <CategoryCard
+      key={category.id}
+      id={category.id}
+      name={category.name}
+      slug={category.slug}
+      image={category.image_url}
+      productCount={productCount}
+    />
+  )
+})}
         </div>
       </section>
 

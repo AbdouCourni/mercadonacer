@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react'
 interface CategoryCardProps {
   id: number
   name: string
+  slug: string   
   icon?: React.ReactNode
   image?: string
   productCount?: number
@@ -14,6 +15,7 @@ interface CategoryCardProps {
 export default function CategoryCard({ 
   id, 
   name, 
+  slug,
   icon, 
   image, 
   productCount 
@@ -54,15 +56,23 @@ export default function CategoryCard({
     return emojis[name] || '📦'
   }
 
-  const slug = name.toLowerCase().replace(/\s+/g, '-')
 
   return (
     <Link href={`/categories/${slug}`}>
       <div className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 card-hover border border-border/50">
         {/* Icon/Image */}
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300">
-          {icon || getEmoji(name)}
-        </div>
+     {/* Icon/Image */}
+<div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+  {image ? (
+    <img
+      src={image}
+      alt={name}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <span>{icon || getEmoji(name)}</span>
+  )}
+</div>
 
         {/* Name */}
         <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">

@@ -320,7 +320,7 @@ export default function Header() {
             </div>
             <div>
               <span className="text-xl md:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">
-                Mercado<span className="text-accent">....</span>
+                Mercado<span className="text-accent">Nacer</span>
               </span>
               <span className="text-[10px] md:text-xs block text-text-secondary leading-tight">
                 Votre supermarché en ligne

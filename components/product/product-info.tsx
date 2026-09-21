@@ -254,7 +254,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         {isInStock ? (
           <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
             <CheckCircle size={16} />
-            En stock ({displayStock} disponibles)
+            En stock
           </span>
         ) : (
           <span className="text-red-600 text-sm font-medium">Rupture de stock</span>

@@ -60,7 +60,8 @@ export default function AdminLayout({
     <div className="flex min-h-screen bg-muted/20">
       <DashboardSidebar userRole={userRole} userName={userName} />
       <div className="flex-1 min-w-0">
-        <main className="p-4 md:p-6">
+        <main className="pt-16 lg:pt-0">
+
           {children}
         </main>
       </div>

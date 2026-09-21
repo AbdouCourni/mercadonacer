@@ -57,7 +57,8 @@ export default function ProductsContent() {
         params.append('page', String(filters.page))
         params.append('limit', String(filters.limit))
 
-        const response = await fetch(`/api/products?${params.toString()}`)
+       params.append('includeInactive', 'true')
+const response = await fetch(`/api/products?${params.toString()}`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)

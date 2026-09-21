@@ -1,25 +1,31 @@
 // File: services/products.service.ts
 // Path: /services/products.service.ts
-// Description: Products service for MercadoNacer
+// Description: Products service for MercadoNacer — with active-only default
 
 import { createClient } from '@/lib/supabase/server'
 import { Product, ProductFilters } from '@/types/product.types'
 
-export async function getProducts(filters?: ProductFilters) {
+// Extend the filters type (you can also update types/product.types.ts)
+interface ExtendedFilters extends ProductFilters {
+  includeInactive?: boolean
+}
+
+export async function getProducts(filters?: ExtendedFilters) {
   try {
-    // createClient() returns a client directly, not a Promise
-    const supabase = createClient()
-    
-    console.log('Supabase client created:', !!supabase)
-    console.log('Supabase from method exists:', typeof (await supabase).from === 'function')
-    
-    let query = (await supabase)
+    const supabase = await createClient()
+
+    let query = supabase
       .from('products')
       .select(`
         *,
         categories:category_id (*),
         variants:product_variants (*)
       `)
+
+    // ✅ Only active products by default
+    if (!filters?.includeInactive) {
+      query = query.eq('is_active', true)
+    }
 
     // Category filter
     if (filters?.category) {
@@ -70,15 +76,20 @@ export async function getProducts(filters?: ProductFilters) {
 
     const { data, error, count } = await query
 
-    if (error) {
-      console.error('Supabase query error:', error)
-      console.error('Error details:', JSON.stringify(error, null, 2))
-      return { products: [], count: 0 }
-    }
+   if (error) {
+  console.error('Supabase query error:', {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+  })
+  console.error('Full error:', JSON.stringify(error, null, 2))
+  return { products: [], count: 0 }
+}
 
-    return { 
-      products: (data || []) as Product[], 
-      count: count || 0 
+    return {
+      products: (data || []) as Product[],
+      count: count || 0
     }
   } catch (error) {
     console.error('Error in getProducts:', error)
@@ -86,11 +97,12 @@ export async function getProducts(filters?: ProductFilters) {
   }
 }
 
-export async function getProductBySlug(slug: string) {
+// ✅ Add includeInactive option for admin usage
+export async function getProductBySlug(slug: string, includeInactive = false) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    const { data, error } = await (await supabase)
+    let query = supabase
       .from('products')
       .select(`
         *,
@@ -98,7 +110,13 @@ export async function getProductBySlug(slug: string) {
         variants:product_variants (*)
       `)
       .eq('slug', slug)
-      .single()
+
+    // ✅ Only active products by default
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query.single()
 
     if (error) {
       console.error('Error fetching product by slug:', error)
@@ -112,11 +130,12 @@ export async function getProductBySlug(slug: string) {
   }
 }
 
-export async function getProductByBarcode(barcode: string) {
+// ✅ Add includeInactive option (e.g., for admin barcode lookup)
+export async function getProductByBarcode(barcode: string, includeInactive = false) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    const { data, error } = await (await supabase)
+    let query = supabase
       .from('products')
       .select(`
         *,
@@ -124,7 +143,13 @@ export async function getProductByBarcode(barcode: string) {
         variants:product_variants (*)
       `)
       .eq('barcode', barcode)
-      .single()
+
+    // ✅ Only active products by default
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
+    }
+
+    const { data, error } = await query.single()
 
     if (error) {
       console.error('Error fetching product by barcode:', error)
@@ -138,11 +163,12 @@ export async function getProductByBarcode(barcode: string) {
   }
 }
 
-export async function searchProducts(query: string) {
+// ✅ searchProducts already filters is_active — add opt-in for admin
+export async function searchProducts(query: string, includeInactive = false) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    const { data, error } = await (await supabase)
+    let dbQuery = supabase
       .from('products')
       .select(`
         *,
@@ -154,8 +180,12 @@ export async function searchProducts(query: string) {
         `barcode.ilike.%${query}%,` +
         `sku.ilike.%${query}%`
       )
-      .eq('is_active', true)
-      .limit(20)
+
+    if (!includeInactive) {
+      dbQuery = dbQuery.eq('is_active', true)
+    }
+
+    const { data, error } = await dbQuery.limit(20)
 
     if (error) {
       console.error('Error searching products:', error)
@@ -169,11 +199,12 @@ export async function searchProducts(query: string) {
   }
 }
 
+// ✅ No changes needed — already filters is_active
 export async function getFeaturedProducts(limit: number = 6) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    const { data, error } = await (await supabase)
+    const { data, error } = await supabase
       .from('products')
       .select('*')
       .eq('is_featured', true)
@@ -192,11 +223,12 @@ export async function getFeaturedProducts(limit: number = 6) {
   }
 }
 
+// ✅ No changes needed — already filters is_active
 export async function getProductsByCategory(categorySlug: string, limit: number = 20) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
-    const { data, error } = await (await supabase)
+    const { data, error } = await supabase
       .from('products')
       .select(`
         *,

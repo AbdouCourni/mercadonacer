@@ -135,7 +135,7 @@ const productId = params.id as string
 
         // Fetch product
         console.log('📝 [EditProductPage] Fetching product with ID:', productId)
-        const productRes = await fetch(`/api/products?id=${productId}`)
+const productRes = await fetch(`/api/products?id=${productId}&includeInactive=true`)
         
         if (!productRes.ok) {
           console.error('❌ Failed to fetch product, status:', productRes.status)

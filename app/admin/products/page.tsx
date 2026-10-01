@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Plus,
   Search,
@@ -24,6 +24,9 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Pagination } from '@/components/ui/pagination'
+
+
 
 interface Product {
   id: string
@@ -62,11 +65,29 @@ export default function ProductsPage() {
     status: ''
   })
   const [showFilters, setShowFilters] = useState(false)
-  const [pagination, setPagination] = useState({
-    page: 0,
-    limit: 10,
-    total: 0
-  })
+  const searchParams = useSearchParams()
+const pageParam = searchParams.get('page')
+const parsed = pageParam ? parseInt(pageParam, 10) : 0
+const initialPage = !isNaN(parsed) && parsed > 0 ? parsed - 1 : 0
+
+const [pagination, setPagination] = useState({
+  page: initialPage,
+  limit: 25,
+  total: 0
+})
+// Sync URL with current page
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  if (pagination.page === 0) {
+    params.delete('page')
+  } else {
+    params.set('page', String(pagination.page + 1))  // Store as 1-indexed
+  }
+  const newUrl = params.toString() 
+    ? `${window.location.pathname}?${params.toString()}`
+    : window.location.pathname
+  window.history.replaceState(null, '', newUrl)
+}, [pagination.page])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -106,16 +127,55 @@ export default function ProductsPage() {
 
         const response = await fetch(`/api/products?${params.toString()}`)
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch products')
-        }
+      if (!response.ok) {
+  const contentType = response.headers.get('content-type')
+  const isJson = contentType?.includes('application/json')
+  const errorText = await response.text()
+  
+  console.error('❌ API error:', {
+    status: response.status,
+    contentType,
+    body: errorText.slice(0, 300),
+  })
+  
+  // Try to parse as JSON if it looks like JSON
+  let errorMessage = `API error ${response.status}`
+  if (isJson) {
+    try {
+      const errorJson = JSON.parse(errorText)
+      errorMessage = errorJson.error || errorJson.debug_message || errorMessage
+    } catch {
+      // Ignore parse errors
+    }
+  }
+  
+  throw new Error(errorMessage)
+}
         
         const data = await response.json()
         
         if (data.products) {
-          setProducts(data.products)
-          setPagination(prev => ({ ...prev, total: data.count || 0 }))
-        } else {
+  const totalCount = data.count || 0
+  const totalPagesCount = Math.max(1, Math.ceil(totalCount / pagination.limit))
+  
+  // Clamp current page to valid range
+  let safePage = pagination.page
+  if (safePage > totalPagesCount - 1) {
+    safePage = totalPagesCount - 1
+  }
+  if (safePage < 0) {
+    safePage = 0
+  }
+  
+  // If page was clamped, update state (triggers refetch)
+  if (safePage !== pagination.page) {
+    setPagination(prev => ({ ...prev, page: safePage, total: totalCount }))
+    return // Let the effect re-run with the corrected page
+  }
+  
+  setProducts(data.products)
+  setPagination(prev => ({ ...prev, total: totalCount }))
+} else {
           setProducts([])
           setPagination(prev => ({ ...prev, total: 0 }))
         }
@@ -434,7 +494,7 @@ export default function ProductsPage() {
                               <Eye size={16} className="text-text-secondary" />
                             </button>
                           </Link>
-                          <Link href={`/admin/products/${product.id}/edit`}>
+                         <Link href={`/admin/products/${product.id}/edit?fromPage=${pagination.page + 1}`}>
                             <button className="p-1.5 hover:bg-muted rounded transition-colors" title="Modifier">
                               <Edit size={16} className="text-blue-600" />
                             </button>
@@ -497,7 +557,7 @@ export default function ProductsPage() {
                       <p className="text-sm text-primary font-medium">{product.price.toFixed(2)} DH</p>
                     </div>
                     <div className="flex gap-1">
-                      <Link href={`/admin/products/${product.id}/edit`}>
+                     <Link href={`/admin/products/${product.id}/edit?fromPage=${pagination.page + 1}`}>
 
                         <button className="p-2 hover:bg-muted rounded transition-colors">
                           <Edit size={16} className="text-blue-600" />
@@ -542,32 +602,16 @@ export default function ProductsPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border gap-3">
-                <p className="text-sm text-text-secondary order-2 sm:order-1">
-                  {pagination.page * pagination.limit + 1} - {Math.min((pagination.page + 1) * pagination.limit, pagination.total)} sur {pagination.total}
-                </p>
-                <div className="flex gap-1 order-1 sm:order-2">
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 0 || loading}
-                    className="p-2 rounded border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <span className="flex items-center px-3 text-sm text-text-secondary">
-                    {pagination.page + 1} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page >= totalPages - 1 || loading}
-                    className="p-2 rounded border border-border hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
-              </div>
-            )}
+         <Pagination
+  currentPage={pagination.page}
+  totalPages={totalPages}
+  onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
+  disabled={loading}
+  totalItems={pagination.total}
+  itemsPerPage={pagination.limit}
+  showPageSize
+  onPageSizeChange={(size) => setPagination(prev => ({ ...prev, limit: size, page: 0 }))}
+/>
           </>
         )}
       </div>

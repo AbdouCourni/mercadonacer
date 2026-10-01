@@ -1,14 +1,18 @@
-// File: app/(admin)/admin/products/[slug]/edit/page.tsx
-// Path: /app/(admin)/admin/products/[slug]/edit/page.tsx
-// Description: Edit product with delete and Cloudinary image cleanup
+// File: app/(admin)/admin/products/[id]/edit/page.tsx
+// Path: /app/(admin)/admin/products/[id]/edit/page.tsx
+// Description: Edit product with promotion, delete, and Cloudinary cleanup
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Loader2, Save, Trash2, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MultiImageUpload } from '@/components/dashboard/multi-image-upload'
+
+// ============================================
+// TYPES
+// ============================================
 
 interface ProductImage {
   id: string
@@ -22,33 +26,47 @@ interface Category {
   name: string
 }
 
-interface Product {
+// ✅ Local form state — all inputs hold strings
+interface ProductFormState {
   id: string
   name: string
   description: string
   slug: string
-  price: number
-  achat_price: number
-  compare_price: number | null
-  stock: number
-  category_id: string | null
-  brand: string | null
-  barcode: string | null
-  sku: string | null
-  unit: string | null
-  weight: number | null
-  images: string[]
+
+  price: string
+  achat_price: string
+  compare_price: string
+
+  stock: string
+  unit: string
+  weight: string
+
+  category_id: string
+  brand: string
+
+  barcode: string
+  sku: string
+
   is_active: boolean
   is_featured: boolean
+
+  // Promotion
+  is_in_promotion: boolean
+  promotion_price: string
+  promotion_start: string
+  promotion_end: string
 }
+
+// ============================================
+// COMPONENT
+// ============================================
 
 export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
-const productId = params.id as string
-
-  console.log('📝 [EditProductPage] Full params:', params)
-  console.log('📝 [EditProductPage] Product ID from params:', productId)
+  const productId = params.id as string
+  const searchParams = useSearchParams()
+  const fromPage = searchParams.get('fromPage') || '1'
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,30 +74,37 @@ const productId = params.id as string
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Product>({
+  
+
+  const [formData, setFormData] = useState<ProductFormState>({
     id: '',
     name: '',
     description: '',
     slug: '',
-    price: 0,
-    achat_price: 0,
-    compare_price: null,
-    stock: 0,
-    category_id: null,
-    brand: null,
-    barcode: null,
-    sku: null,
-    unit: null,
-    weight: null,
-    images: [],
+    price: '',
+    achat_price: '',
+    compare_price: '',
+    stock: '',
+    unit: '',
+    weight: '',
+    category_id: '',
+    brand: '',
+    barcode: '',
+    sku: '',
     is_active: true,
-    is_featured: false
+    is_featured: false,
+    is_in_promotion: false,
+    promotion_price: '',
+    promotion_start: '',
+    promotion_end: '',
   })
 
-  // Extract publicId from Cloudinary URL
+  // ============================================
+  // HELPERS
+  // ============================================
+
   const extractPublicId = (url: string): string | null => {
     try {
-      // Cloudinary URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/public_id.jpg
       const match = url.match(/\/upload\/(?:v\d+\/)?([^.]+)/)
       return match ? match[1] : null
     } catch {
@@ -87,18 +112,13 @@ const productId = params.id as string
     }
   }
 
-  // Delete image from Cloudinary
-  const deleteImageFromCloudinary = async (publicId: string) => {
+  const deleteImageFromCloudinary = async (publicId: string): Promise<boolean> => {
     try {
       const response = await fetch('/api/cloudinary/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publicId })
+        body: JSON.stringify({ publicId }),
       })
-
-      if (!response.ok) {
-        console.error('Failed to delete image from Cloudinary:', publicId)
-      }
       return response.ok
     } catch (error) {
       console.error('Error deleting image from Cloudinary:', error)
@@ -106,21 +126,49 @@ const productId = params.id as string
     }
   }
 
-  // Delete all product images from Cloudinary
   const deleteProductImages = async (imageUrls: string[]) => {
     const deletePromises = imageUrls
       .map(extractPublicId)
       .filter((id): id is string => id !== null)
-      .map(publicId => deleteImageFromCloudinary(publicId))
+      .map((publicId) => deleteImageFromCloudinary(publicId))
 
     await Promise.all(deletePromises)
   }
 
-  // Fetch product and categories
+  // Convert datetime-local value "2026-10-01T14:30" to ISO string
+  const toISOString = (localDatetime: string): string | null => {
+    if (!localDatetime) return null
+    try {
+      return new Date(localDatetime).toISOString()
+    } catch {
+      return null
+    }
+  }
+
+  // Convert ISO string to datetime-local value
+  const toLocalDatetime = (isoString: string | null): string => {
+    if (!isoString) return ''
+    try {
+      const date = new Date(isoString)
+      // Format: YYYY-MM-DDTHH:mm
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    } catch {
+      return ''
+    }
+  }
+
+  // ============================================
+  // FETCH PRODUCT + CATEGORIES
+  // ============================================
+
   useEffect(() => {
     const fetchData = async () => {
       if (!productId) {
-        console.error('❌ No product ID provided - params:', params)
         setError('No product ID provided')
         setLoading(false)
         return
@@ -128,37 +176,70 @@ const productId = params.id as string
 
       try {
         // Fetch categories
-        console.log('📝 [EditProductPage] Fetching categories...')
         const categoriesRes = await fetch('/api/categories')
         const categoriesData = await categoriesRes.json()
         setCategories(categoriesData.categories || [])
 
-        // Fetch product
-        console.log('📝 [EditProductPage] Fetching product with ID:', productId)
-const productRes = await fetch(`/api/products?id=${productId}&includeInactive=true`)
-        
+        // Fetch product (include inactive so admin can edit)
+        const productRes = await fetch(`/api/products?id=${productId}&includeInactive=true`)
+
         if (!productRes.ok) {
-          console.error('❌ Failed to fetch product, status:', productRes.status)
           throw new Error(`Failed to fetch product: ${productRes.status}`)
         }
 
-        const productData = await productRes.json()
-        console.log('✅ Product data received:', productData.name)
-        setFormData(productData)
-        
-        // Convert images to ProductImage format
-        if (productData.images && productData.images.length > 0) {
-          const formattedImages = productData.images.map((url: string, index: number) => ({
+        const product = await productRes.json()
+
+        console.log('🔍 [EditPage] Product response:', product)
+console.log('🔍 [EditPage] Keys:', Object.keys(product))
+console.log('🔍 [EditPage] name:', product.name)
+console.log('🔍 [EditPage] price:', product.price)
+console.log('🔍 [EditPage] images:', product.images)
+
+        // ✅ Convert DB shape → form shape (everything as strings for inputs)
+        setFormData({
+          id: product.id || '',
+          name: product.name || '',
+          description: product.description || '',
+          slug: product.slug || '',
+          price: product.price !== null && product.price !== undefined ? String(product.price) : '',
+          achat_price: product.achat_price !== null && product.achat_price !== undefined
+            ? String(product.achat_price)
+            : '',
+          compare_price: product.compare_price !== null && product.compare_price !== undefined
+            ? String(product.compare_price)
+            : '',
+          stock: product.stock !== null && product.stock !== undefined ? String(product.stock) : '0',
+          unit: product.unit || '',
+          weight: product.weight !== null && product.weight !== undefined
+            ? String(product.weight)
+            : '',
+          category_id: product.category_id || '',
+          brand: product.brand || '',
+          barcode: product.barcode || '',
+          sku: product.sku || '',
+          is_active: product.is_active ?? true,
+          is_featured: product.is_featured ?? false,
+          is_in_promotion: product.is_in_promotion ?? false,
+          promotion_price:
+            product.promotion_price !== null && product.promotion_price !== undefined
+              ? String(product.promotion_price)
+              : '',
+          promotion_start: toLocalDatetime(product.promotion_start),
+          promotion_end: toLocalDatetime(product.promotion_end),
+        })
+
+        // Load images
+        if (product.images && product.images.length > 0) {
+          const formattedImages = product.images.map((url: string, index: number) => ({
             id: crypto.randomUUID(),
-            url: url,
+            url,
             publicId: extractPublicId(url) || '',
-            isPrimary: index === 0
+            isPrimary: index === 0,
           }))
           setImages(formattedImages)
-          console.log('✅ Images loaded:', formattedImages.length)
         }
       } catch (error) {
-        console.error('❌ Error fetching data:', error)
+        console.error('Error fetching data:', error)
         setError(error instanceof Error ? error.message : 'Failed to load product data')
       } finally {
         setLoading(false)
@@ -168,61 +249,96 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
     fetchData()
   }, [productId])
 
-  // Handle form submission
+  // ============================================
+  // SUBMIT
+  // ============================================
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setSaving(true)
+
+    // ✅ Validation with parsed numbers
+    const priceNum = parseFloat(formData.price)
+    const stockNum = parseInt(formData.stock, 10)
+    const promoPriceNum = formData.promotion_price ? parseFloat(formData.promotion_price) : null
 
     if (!formData.name.trim()) {
       setError('Le nom du produit est requis')
-      setSaving(false)
       return
     }
 
-    if (formData.price <= 0) {
+    if (isNaN(priceNum) || priceNum <= 0) {
       setError('Le prix doit être supérieur à 0')
-      setSaving(false)
       return
     }
 
-    if (formData.stock < 0) {
+    if (isNaN(stockNum) || stockNum < 0) {
       setError('Le stock doit être un nombre valide')
-      setSaving(false)
       return
     }
+
+    // Promotion validation
+    if (formData.is_in_promotion) {
+      if (promoPriceNum === null || promoPriceNum <= 0) {
+        setError('Le prix promotionnel est requis quand la promotion est active')
+        return
+      }
+      if (promoPriceNum >= priceNum) {
+        setError('Le prix promotionnel doit être inférieur au prix normal')
+        return
+      }
+    }
+
+    setSaving(true)
 
     try {
+      // Build slug from name
       const slug = formData.name
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-')
 
-      const productData = {
-  name: formData.name.trim(),
-  description: formData.description.trim(),
-  slug: slug,
-  price: formData.price,
-  compare_price: formData.compare_price,
-  stock: formData.stock,
-  category_id: formData.category_id || null,
-  brand: formData.brand?.trim() || null,
-  barcode: formData.barcode?.trim() || null,
-  sku: formData.sku?.trim() || null,
-  unit: formData.unit?.trim() || null,
-  weight: formData.weight || null,
-  // Send the full image objects with isPrimary flag
-  images: images,  // ← Send full objects, not just URLs
-  is_active: formData.is_active,
-  is_featured: formData.is_featured
-}
+      // Sort images so primary is first, then send URLs only
+      const sortedImages = [...images].sort((a, b) => {
+        if (a.isPrimary) return -1
+        if (b.isPrimary) return 1
+        return 0
+      })
 
-      console.log('📝 [EditProductPage] Updating product with ID:', productId)
+      const payload = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        slug,
+        price: priceNum,
+        achat_price: formData.achat_price ? parseFloat(formData.achat_price) : null,
+        compare_price: formData.compare_price ? parseFloat(formData.compare_price) : null,
+        stock: stockNum,
+        unit: formData.unit.trim() || null,
+        weight: formData.weight ? parseFloat(formData.weight) : null,
+        category_id: formData.category_id || null,
+        brand: formData.brand.trim() || null,
+        barcode: formData.barcode.trim() || null,
+        sku: formData.sku.trim() || null,
+        images: sortedImages.map((img) => img.url), // ✅ Send URLs only
+        is_active: formData.is_active,
+        is_featured: formData.is_featured,
+
+        // Promotion
+        is_in_promotion: formData.is_in_promotion,
+        promotion_price: formData.is_in_promotion ? promoPriceNum : null,
+        promotion_start: formData.is_in_promotion
+          ? toISOString(formData.promotion_start)
+          : null,
+        promotion_end: formData.is_in_promotion
+          ? toISOString(formData.promotion_end)
+          : null,
+      }
+
       const response = await fetch(`/api/products?id=${productId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(productData)
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -231,7 +347,12 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
         throw new Error(result.error || 'Erreur lors de la mise à jour')
       }
 
-      router.push('/admin/products')
+      // Return to previous page
+      router.push(
+        parseInt(fromPage) > 1
+          ? `/admin/products?page=${fromPage}`
+          : '/admin/products'
+      )
     } catch (error) {
       console.error('Error updating product:', error)
       setError(error instanceof Error ? error.message : 'Erreur lors de la mise à jour')
@@ -240,7 +361,10 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
     }
   }
 
-  // Handle delete with Cloudinary cleanup
+  // ============================================
+  // DELETE
+  // ============================================
+
   const handleDelete = async () => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le produit "${formData.name}" ?`)) return
 
@@ -248,17 +372,14 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
     setError(null)
 
     try {
-      // 1. Delete product images from Cloudinary
+      // Delete images from Cloudinary first
       if (images.length > 0) {
-        console.log('🗑️ Deleting images from Cloudinary...')
-        await deleteProductImages(images.map(img => img.url))
-        console.log('✅ Images deleted from Cloudinary')
+        await deleteProductImages(images.map((img) => img.url))
       }
 
-      // 2. Delete product from database
-      console.log('🗑️ Deleting product from database...')
+      // Delete product from DB
       const response = await fetch(`/api/products?id=${productId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       if (!response.ok) {
@@ -266,14 +387,21 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
         throw new Error(result.error || 'Failed to delete product')
       }
 
-      console.log('✅ Product deleted successfully')
-      router.push('/admin/products')
+      router.push(
+        parseInt(fromPage) > 1
+          ? `/admin/products?page=${fromPage}`
+          : '/admin/products'
+      )
     } catch (error) {
-      console.error('❌ Error deleting product:', error)
+      console.error('Error deleting product:', error)
       setError(error instanceof Error ? error.message : 'Failed to delete product')
       setDeleting(false)
     }
   }
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   if (loading) {
     return (
@@ -319,7 +447,7 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
         </Button>
       </div>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl">
           {error}
@@ -329,12 +457,12 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
       {/* Form */}
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main form */}
+          {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Info */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Informations générales</h2>
-              
+
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1">
                   Nom du produit *
@@ -354,7 +482,7 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                 </label>
                 <textarea
                   rows={4}
-                  value={formData.description || ''}
+                  value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                   placeholder="Description détaillée du produit..."
@@ -367,13 +495,15 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                     Catégorie
                   </label>
                   <select
-                    value={formData.category_id || ''}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <option value="">Sélectionner une catégorie</option>
                     {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -383,8 +513,8 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                   </label>
                   <input
                     type="text"
-                    value={formData.brand || ''}
-                    onChange={(e) => setFormData({ ...formData, brand: e.target.value || null })}
+                    value={formData.brand}
+                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="Nom de la marque"
                   />
@@ -395,62 +525,76 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
             {/* Pricing & Stock */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Prix et stock</h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-  <div>
-    <label className="block text-sm font-medium text-text-primary mb-1">
-      Prix de vente (DH) *
-    </label>
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      value={formData.price}
-      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value)  })}
-      className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-      required
-      placeholder="0.00"
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-text-primary mb-1">
-      Prix d'achat (DH)
-    </label>
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      value={formData.achat_price}
-      onChange={(e) => setFormData({ ...formData, achat_price: parseFloat(e.target.value) })} 
-      className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-      placeholder="0.00"
-    />
-  </div>
-  <div>
-    <label className="block text-sm font-medium text-text-primary mb-1">
-      Prix comparatif
-    </label>
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      value={formData.compare_price ?? ''}
-      onChange={(e) => setFormData({ ...formData, compare_price: e.target.value === '' ? null : parseFloat(e.target.value) })}
-      className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-      placeholder="0.00"
-    />
-  </div>
-</div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix de vente (DH) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix d'achat (DH)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.achat_price}
+                    onChange={(e) => setFormData({ ...formData, achat_price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix comparatif
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.compare_price}
+                    onChange={(e) => setFormData({ ...formData, compare_price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Stock *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                    placeholder="0"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1">
                     Unité
                   </label>
                   <input
                     type="text"
-                    value={formData.unit || ''}
-                    onChange={(e) => setFormData({ ...formData, unit: e.target.value || null })}
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="kg, L, pièce..."
                   />
@@ -463,8 +607,8 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                     type="number"
                     step="0.01"
                     min="0"
-                    value={formData.weight || ''}
-                    onChange={(e) => setFormData({ ...formData, weight: e.target.value ? parseFloat(e.target.value) : null })}
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="0.00"
                   />
@@ -472,10 +616,95 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
               </div>
             </div>
 
+            {/* 🔥 Promotion */}
+            <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+              <h2 className="font-semibold text-text-primary flex items-center gap-2">
+                <Tag size={18} className="text-red-500" />
+                Promotion
+              </h2>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_in_promotion}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_in_promotion: e.target.checked })
+                  }
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium">Activer la promotion</span>
+              </label>
+
+              {formData.is_in_promotion && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-1">
+                      Prix promotionnel (DH) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.promotion_price}
+                      onChange={(e) =>
+                        setFormData({ ...formData, promotion_price: e.target.value })
+                      }
+                      className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      placeholder="0.00"
+                    />
+                    {formData.price && formData.promotion_price && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Réduction:{' '}
+                        {Math.round(
+                          ((parseFloat(formData.price) - parseFloat(formData.promotion_price)) /
+                            parseFloat(formData.price)) *
+                            100
+                        )}
+                        %
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-1">
+                        Début
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.promotion_start}
+                        onChange={(e) =>
+                          setFormData({ ...formData, promotion_start: e.target.value })
+                        }
+                        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-1">
+                        Fin
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.promotion_end}
+                        onChange={(e) =>
+                          setFormData({ ...formData, promotion_end: e.target.value })
+                        }
+                        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-text-secondary">
+                    Laissez les dates vides pour une promotion permanente.
+                  </p>
+                </>
+              )}
+            </div>
+
             {/* Codes */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Codes et références</h2>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1">
@@ -483,8 +712,8 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                   </label>
                   <input
                     type="text"
-                    value={formData.barcode || ''}
-                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value || null })}
+                    value={formData.barcode}
+                    onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="611110000001"
                   />
@@ -495,8 +724,8 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                   </label>
                   <input
                     type="text"
-                    value={formData.sku || ''}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value || null })}
+                    value={formData.sku}
+                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                     placeholder="FRUIT-TOM-001"
                   />
@@ -510,11 +739,7 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
             {/* Images */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Images</h2>
-              <MultiImageUpload
-                images={images}
-                onChange={setImages}
-                maxImages={5}
-              />
+              <MultiImageUpload images={images} onChange={setImages} maxImages={5} />
               <p className="text-xs text-text-secondary">
                 Recommandé: 800x800px, format JPG ou PNG. Max 5 images.
               </p>
@@ -523,7 +748,7 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
             {/* Status */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Statut</h2>
-              
+
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -538,7 +763,9 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
                 <input
                   type="checkbox"
                   checked={formData.is_featured}
-                  onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_featured: e.target.checked })
+                  }
                   className="rounded border-border"
                 />
                 <span className="text-sm">Produit en vedette</span>
@@ -547,7 +774,7 @@ const productRes = await fetch(`/api/products?id=${productId}&includeInactive=tr
           </div>
         </div>
 
-        {/* Submit Button - Bottom */}
+        {/* Actions */}
         <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-6">
           <Button
             type="button"

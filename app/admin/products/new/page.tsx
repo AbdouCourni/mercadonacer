@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Plus } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Plus, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MultiImageUpload } from '@/components/dashboard/multi-image-upload'
 
@@ -42,7 +42,11 @@ export default function NewProductPage() {
     unit: '',
     weight: '',
     is_active: true,
-    is_featured: false
+    is_featured: false,
+    is_in_promotion: false,
+    promotion_price: '',
+    promotion_start: '',
+    promotion_end: '',
   })
 
   // Fetch categories
@@ -107,7 +111,11 @@ export default function NewProductPage() {
         weight: formData.weight ? parseFloat(formData.weight) : null,
         images: images.map(img => img.url),
         is_active: formData.is_active,
-        is_featured: formData.is_featured
+        is_featured: formData.is_featured,
+        is_in_promotion: formData.is_in_promotion,
+        promotion_price: formData.promotion_price ? parseFloat(formData.promotion_price) : null,
+        promotion_start: formData.promotion_start || null,
+        promotion_end: formData.promotion_end || null,
       }
 
       console.log('Sending product data:', productData)
@@ -226,103 +234,104 @@ export default function NewProductPage() {
               </div>
             </div>
 
-          {/* Pricing & Stock */}
-<div className="bg-white rounded-xl border border-border p-6 space-y-4">
-  <h2 className="font-semibold text-text-primary">Prix et stock</h2>
-  
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Prix de vente (DH) *
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={formData.price}
-        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        required
-        placeholder="0.00"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Prix d'achat (DH)
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={formData.achat_price}
-        onChange={(e) => setFormData({ ...formData, achat_price: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="0.00"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Prix comparatif
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={formData.compare_price}
-        onChange={(e) => setFormData({ ...formData, compare_price: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="0.00"
-      />
-    </div>
-  </div>
+            {/* Pricing & Stock */}
+            <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+              <h2 className="font-semibold text-text-primary">Prix et stock</h2>
 
-  {/* 🔥 ADD STOCK FIELD */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Stock * (quantité disponible)
-      </label>
-      <input
-        type="number"
-        min="0"
-        value={formData.stock}
-        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        required
-        placeholder="0"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Unité
-      </label>
-      <input
-        type="text"
-        value={formData.unit}
-        onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="kg, L, pièce..."
-      />
-    </div>
-  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix de vente (DH) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix d'achat (DH)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.achat_price}
+                    onChange={(e) => setFormData({ ...formData, achat_price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Prix comparatif
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.compare_price}
+                    onChange={(e) => setFormData({ ...formData, compare_price: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
 
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div>
-      <label className="block text-sm font-medium text-text-primary mb-1">
-        Poids (kg)
-      </label>
-      <input
-        type="number"
-        step="0.01"
-        min="0"
-        value={formData.weight}
-        onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-        className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
-        placeholder="0.00"
-      />
-    </div>
-  </div>
-</div>
+              {/* 🔥 ADD STOCK FIELD */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Stock * (quantité disponible)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    required
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Unité
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="kg, L, pièce..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    Poids (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+
 
             {/* Codes */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
@@ -354,6 +363,69 @@ export default function NewProductPage() {
                   />
                 </div>
               </div>
+            </div>
+            <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+              <h2 className="font-semibold text-text-primary flex items-center gap-2">
+                <Tag size={18} />
+                Promotion
+              </h2>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_in_promotion}
+                  onChange={(e) => setFormData({ ...formData, is_in_promotion: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <span className="text-sm">Activer la promotion</span>
+              </label>
+
+              {formData.is_in_promotion && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary mb-1">
+                      Prix promotionnel (DH) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.promotion_price}
+                      onChange={(e) => setFormData({ ...formData, promotion_price: e.target.value })}
+                      className="w-full px-4 py-2 rounded-lg border border-border"
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-text-secondary mt-1">
+                      Doit être inférieur au prix normal ({formData.price} DH)
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-1">
+                        Date de début
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.promotion_start}
+                        onChange={(e) => setFormData({ ...formData, promotion_start: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-border"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary mb-1">
+                        Date de fin
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.promotion_end}
+                        onChange={(e) => setFormData({ ...formData, promotion_end: e.target.value })}
+                        className="w-full px-4 py-2 rounded-lg border border-border"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

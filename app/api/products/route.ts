@@ -34,17 +34,18 @@ export async function GET(request: NextRequest) {
   const slug = searchParams.get('slug')
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20
   const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 0
-  const includeInactive = searchParams.get('includeInactive') === 'true'   // 🔥 NEW
+  const includeInactive = searchParams.get('includeInactive') === 'true'
+  const promo = searchParams.get('promo') === 'true'
 
   try {
-    console.log('🔍 Products API called with:', { id, slug, limit, page, includeInactive })
-    
     const supabase = await createClient()
-    
-    // 🔥 If ID is provided, fetch single product
+
+    // ============================================
+    // SINGLE PRODUCT BY ID
+    // ============================================
     if (id) {
       console.log('🔍 Fetching product with ID:', id)
-      
+
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(id)) {
         console.log('❌ Invalid UUID format:', id)
@@ -53,8 +54,8 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         )
       }
-      
-      let query = supabase
+
+      const { data, error } = await supabase
         .from('products')
         .select(`
           *,
@@ -65,13 +66,7 @@ export async function GET(request: NextRequest) {
           )
         `)
         .eq('id', id)
-
-      // 🔥 Filter inactive products unless explicitly requested
-      if (!includeInactive) {
-        query = query.eq('is_active', true)
-      }
-
-      const { data, error } = await query.single()
+        .single()
 
       if (error) {
         console.error('❌ Product fetch error:', error)
@@ -85,10 +80,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data)
     }
 
-    // If slug is provided, fetch by slug
+    // ============================================
+    // SINGLE PRODUCT BY SLUG
+    // ============================================
     if (slug) {
       console.log('🔍 Fetching product with slug:', slug)
-      
+
       let query = supabase
         .from('products')
         .select(`
@@ -101,7 +98,7 @@ export async function GET(request: NextRequest) {
         `)
         .eq('slug', slug)
 
-      // 🔥 Filter inactive products unless explicitly requested
+      // Only filter active if not explicitly requesting inactive
       if (!includeInactive) {
         query = query.eq('is_active', true)
       }
@@ -120,7 +117,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data)
     }
 
-    // Otherwise, return list of products with categories
+    // ============================================
+    // LIST PRODUCTS
+    // ============================================
     console.log('🔍 Fetching products list')
     const from = page * limit
     const to = from + limit - 1
@@ -136,9 +135,17 @@ export async function GET(request: NextRequest) {
         )
       `, { count: 'exact' })
 
-    // 🔥 Filter inactive products unless explicitly requested
+    // Filter by active status
     if (!includeInactive) {
       query = query.eq('is_active', true)
+    }
+
+    // Promo filter
+    if (promo) {
+      query = query
+        .eq('is_in_promotion', true)
+        .not('promotion_price', 'is', null)
+        .or(`promotion_end.is.null,promotion_end.gte.${new Date().toISOString()}`)
     }
 
     const { data, error, count } = await query
@@ -154,7 +161,7 @@ export async function GET(request: NextRequest) {
       products: data || [],
       count: count || 0,
       page,
-      limit
+      limit,
     })
   } catch (error) {
     console.error('❌ Public products API error:', error)
@@ -188,6 +195,10 @@ export async function POST(request: NextRequest) {
       stock: parseInt(body.stock),
       weight: body.weight ? parseFloat(body.weight) : null,
       images: body.images || [],
+       is_in_promotion: body.is_in_promotion ?? false,
+  promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
+  promotion_start: body.promotion_start || null,
+  promotion_end: body.promotion_end || null,
     }
 
     const { data, error } = await supabase
@@ -252,6 +263,10 @@ export async function PATCH(request: NextRequest) {
       images: images,
       is_active: body.is_active,
       is_featured: body.is_featured,
+       is_in_promotion: body.is_in_promotion,
+  promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
+  promotion_start: body.promotion_start || null,
+  promotion_end: body.promotion_end || null,
     }
 
     const { data, error } = await supabase

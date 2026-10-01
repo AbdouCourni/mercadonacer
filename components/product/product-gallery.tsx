@@ -58,7 +58,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
           alt={name}
           fill
           className={cn(
-            "object-cover transition-transform duration-500",
+            "object-contain p-4 transition-transform duration-500",
             isZoomed ? "scale-150 cursor-zoom-out" : "scale-100"
           )}
           sizes="(max-width: 768px) 100vw, 50vw"

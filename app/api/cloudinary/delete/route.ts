@@ -1,15 +1,10 @@
-// File: app/api/cloudinary/delete/route.ts
-// Path: /app/api/cloudinary/delete/route.ts
-// Description: Delete image from Cloudinary - WITH DEBUG
-
 import { NextRequest, NextResponse } from 'next/server'
 import { v2 as cloudinary } from 'cloudinary'
 
-// Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-  api_key: process.env.CLOUDINARY_API_KEY!,
-  api_secret: process.env.CLOUDINARY_API_SECRET!,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
 export async function POST(request: NextRequest) {
@@ -17,40 +12,42 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { publicId } = body
 
-    console.log('🗑️ [Cloudinary] Delete request received:', { publicId })
-
     if (!publicId) {
-      console.error('❌ [Cloudinary] No public ID provided')
-      return NextResponse.json(
-        { error: 'Public ID is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Public ID is required' }, { status: 400 })
     }
 
-    console.log('🗑️ [Cloudinary] Deleting image:', publicId)
-    const result = await cloudinary.uploader.destroy(publicId)
-    console.log('📊 [Cloudinary] Delete result:', result)
-
-    if (result.result === 'ok') {
-      console.log('✅ [Cloudinary] Image deleted successfully')
-      return NextResponse.json({ success: true, result })
-    } else if (result.result === 'not found') {
-      console.log('⚠️ [Cloudinary] Image not found')
+    // Ensure environment variables are loaded
+    if (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('❌ [Cloudinary] Missing API Key or API Secret in environment variables.')
       return NextResponse.json(
-        { error: 'Image not found on Cloudinary' },
-        { status: 404 }
-      )
-    } else {
-      console.error('❌ [Cloudinary] Delete failed:', result)
-      return NextResponse.json(
-        { error: result.result || 'Failed to delete image' },
+        { error: 'Server misconfiguration: missing credentials' },
         { status: 500 }
       )
     }
-  } catch (error) {
-    console.error('❌ [Cloudinary] Delete error:', error)
+
+    // Strip extension if present (e.g., "folder/image.jpg" -> "folder/image")
+    const cleanPublicId = publicId.replace(/\.[^/.]+$/, '')
+
+    console.log('🗑️ Attempting to delete Cloudinary Public ID:', cleanPublicId)
+
+    const result = await cloudinary.uploader.destroy(cleanPublicId, {
+      resource_type: 'image',
+      invalidate: true,
+    })
+
+    console.log('🔍 Cloudinary Destroy Result:', result)
+
+    if (result.result === 'ok') {
+      return NextResponse.json({ success: true, result })
+    } else if (result.result === 'not found') {
+      return NextResponse.json({ error: 'Image not found on Cloudinary' }, { status: 404 })
+    } else {
+      return NextResponse.json({ error: result.result || 'Failed to delete image' }, { status: 500 })
+    }
+  } catch (error: any) {
+    console.error('❌ [Cloudinary] Delete exception:', error?.message || error)
     return NextResponse.json(
-      { error: 'Failed to delete image from Cloudinary' },
+      { error: error?.message || 'Failed to delete image from Cloudinary' },
       { status: 500 }
     )
   }

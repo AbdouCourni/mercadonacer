@@ -18,14 +18,25 @@ import {
   CreditCard,
   Shield,
   Loader2,
-  MapPin
+  MapPin,
+  MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DeliveryMapModal } from '@/components/delivery/delivery-map-modal'
 import { CircularZone, DELIVERY_ZONES } from '@/config/delivery-zones'
+import { isVitrineMode } from '@/lib/site-mode'
+import { getEffectivePrice, toNumber } from '@/types/product.types'
+
+
 
 export default function CartList() {
   const router = useRouter()
+  useEffect(() => {
+    if (isVitrineMode()) {
+      router.replace('/products')
+    }
+  }, [router])
+
   const searchParams = useSearchParams()
   const {
     items,
@@ -39,20 +50,20 @@ export default function CartList() {
   const [updating, setUpdating] = useState<string | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
   const [showMap, setShowMap] = useState(false)
-  
+
   // Shop location state
-  const [shopLocation, setShopLocation] = useState<{ 
-    lat: number; 
-    lng: number; 
-    name?: string; 
-    address?: string 
-  }>({ 
-    lat: 35.169829836951294, 
-    lng: -2.933249645530903, 
-    name: 'MercadoNacer', 
-    address: 'Nador, Maroc' 
+  const [shopLocation, setShopLocation] = useState<{
+    lat: number;
+    lng: number;
+    name?: string;
+    address?: string
+  }>({
+    lat: 35.169829836951294,
+    lng: -2.933249645530903,
+    name: 'MercadoNacer',
+    address: 'Nador, Maroc'
   })
-  
+
   // 🔥 Read zone from URL params
   const [selectedZone, setSelectedZone] = useState<CircularZone | null>(null)
   const [deliveryFee, setDeliveryFee] = useState(30)
@@ -61,7 +72,7 @@ export default function CartList() {
   useEffect(() => {
     const zoneId = searchParams.get('zoneId')
     const zoneFee = searchParams.get('deliveryFee')
-    
+
     if (zoneId) {
       // Find zone by ID in DELIVERY_ZONES
       const foundZone = DELIVERY_ZONES.find(z => z.id === zoneId)
@@ -72,7 +83,7 @@ export default function CartList() {
         return
       }
     }
-    
+
     // If no zone in URL, try to find by fee
     if (zoneFee) {
       const fee = parseFloat(zoneFee)
@@ -84,7 +95,7 @@ export default function CartList() {
         return
       }
     }
-    
+
     // Default to first zone
     if (DELIVERY_ZONES.length > 0 && !selectedZone) {
       setSelectedZone(DELIVERY_ZONES[0])
@@ -134,7 +145,7 @@ export default function CartList() {
     setSelectedZone(zone)
     setDeliveryFee(zone.fee)
     setShowMap(false)
-    
+
     // Update URL with zone params
     const params = new URLSearchParams(searchParams.toString())
     params.set('zoneId', zone.id)
@@ -143,7 +154,7 @@ export default function CartList() {
     params.set('zoneMinOrder', zone.min_order.toString())
     params.set('zoneRadius', zone.radiusKm.toString())
     params.set('zoneColor', zone.color)
-    
+
     router.replace(`/cart?${params.toString()}`, { scroll: false })
   }
 
@@ -191,10 +202,13 @@ export default function CartList() {
             {items.map((item, index) => {
               const product = item.products
               const variant = item.product_variants
-              const price = variant?.price || product?.price || 0
+              const basePrice = variant?.price || product?.price || 0
+              const price = product
+                ? getEffectivePrice(product as any)
+                : toNumber(basePrice)
               const name = product?.name || 'Produit'
               const image = product?.images?.[0] || '/images/placeholder.jpg'
-              
+
               const uniqueKey = item.id || `cart-${item.product_id}-${item.variant_id || 'no-variant'}-${index}`
 
               return (
@@ -306,7 +320,7 @@ export default function CartList() {
 
               <div className="space-y-3">
                 {/* Delivery Zone Selector */}
-                <div 
+                <div
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors"
                   onClick={() => setShowMap(true)}
                 >
@@ -343,7 +357,7 @@ export default function CartList() {
                     )}
                   </span>
                 </div>
-               
+
                 <div className="border-t border-border pt-3">
                   <div className="flex justify-between text-lg font-bold text-text-primary">
                     <span>Total</span>
@@ -378,15 +392,15 @@ export default function CartList() {
               <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-text-secondary text-center">
                 <div>
                   <Truck size={16} className="mx-auto mb-1" />
-                  Livraison 24h
+                  Livraison 24-48h
                 </div>
                 <div>
                   <CreditCard size={16} className="mx-auto mb-1" />
-                  Paiement sécurisé
+                  Paiement à la livraison
                 </div>
                 <div>
-                  <Shield size={16} className="mx-auto mb-1" />
-                  Satisfait ou remboursé
+                  <MessageCircle size={16} className="mx-auto mb-1" />
+                  Support WhatsApp
                 </div>
               </div>
             </div>

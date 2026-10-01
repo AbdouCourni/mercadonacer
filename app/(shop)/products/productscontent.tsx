@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
 import { Filter, Grid, List, ChevronDown, Loader2 } from 'lucide-react'
+import { Pagination } from '@/components/ui/pagination'
 
 // Get category slug from URL param
 const getCategorySlug = (categoryName: string) => {
@@ -28,13 +29,18 @@ export default function ProductsContent() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const initialPage = searchParams.get('page')
+    ? Math.max(0, parseInt(searchParams.get('page')!) - 1)
+    : 0
+
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
-    minPrice: '',
-    maxPrice: '',
-    sort: 'created_at-desc',
-    page: 0,
-    limit: 20
+    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
+    sort: searchParams.get('sort') || 'created_at-desc',
+    page: initialPage,
+    limit: 25   // was 20 — match admin
+
   })
 
   // Fetch products
@@ -43,13 +49,13 @@ export default function ProductsContent() {
       setLoading(true)
       try {
         const params = new URLSearchParams()
-        
+
         // Convert category name to slug if needed
         let categoryValue = filters.category
         if (categoryValue && !categoryValue.includes('-')) {
           categoryValue = getCategorySlug(categoryValue)
         }
-        
+
         if (categoryValue) params.append('category', categoryValue)
         if (filters.minPrice) params.append('minPrice', filters.minPrice)
         if (filters.maxPrice) params.append('maxPrice', filters.maxPrice)
@@ -57,15 +63,14 @@ export default function ProductsContent() {
         params.append('page', String(filters.page))
         params.append('limit', String(filters.limit))
 
-       params.append('includeInactive', 'true')
-const response = await fetch(`/api/products?${params.toString()}`)
-        
+        const response = await fetch(`/api/products?${params.toString()}`)
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const data = await response.json()
-        
+
         if (data && data.products) {
           setProducts(data.products)
           setTotalCount(data.count || 0)
@@ -83,6 +88,22 @@ const response = await fetch(`/api/products?${params.toString()}`)
     }
 
     fetchProducts()
+  }, [filters])
+
+  // Sync URL when filters change (for shareable links + back button)
+  useEffect(() => {
+    const params = new URLSearchParams()
+
+    if (filters.category) params.set('category', filters.category)
+    if (filters.minPrice) params.set('minPrice', filters.minPrice)
+    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+    if (filters.sort && filters.sort !== 'created_at-desc') params.set('sort', filters.sort)
+    if (filters.page > 0) params.set('page', String(filters.page + 1))
+
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname
+    window.history.replaceState(null, '', newUrl)
   }, [filters])
 
   // Handle filter changes
@@ -113,8 +134,8 @@ const response = await fetch(`/api/products?${params.toString()}`)
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center gap-2"
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -123,8 +144,8 @@ const response = await fetch(`/api/products?${params.toString()}`)
             <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </Button>
           {(filters.category || filters.minPrice || filters.maxPrice) && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => {
                 setFilters({
@@ -149,21 +170,19 @@ const response = await fetch(`/api/products?${params.toString()}`)
           </span>
           <div className="flex border border-border rounded-lg overflow-hidden">
             <button
-              className={`p-2 transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-primary text-white' 
+              className={`p-2 transition-colors ${viewMode === 'grid'
+                  ? 'bg-primary text-white'
                   : 'bg-white text-text-secondary hover:bg-muted'
-              }`}
+                }`}
               onClick={() => setViewMode('grid')}
             >
               <Grid size={18} />
             </button>
             <button
-              className={`p-2 transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-primary text-white' 
+              className={`p-2 transition-colors ${viewMode === 'list'
+                  ? 'bg-primary text-white'
                   : 'bg-white text-text-secondary hover:bg-muted'
-              }`}
+                }`}
               onClick={() => setViewMode('list')}
             >
               <List size={18} />
@@ -177,7 +196,7 @@ const response = await fetch(`/api/products?${params.toString()}`)
         <div className="mb-6 p-4 bg-muted rounded-2xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label className="text-sm font-medium block mb-1">Catégorie</label>
-            <select 
+            <select
               className="w-full px-3 py-2 rounded-lg border border-border bg-white"
               value={filters.category}
               onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -195,9 +214,9 @@ const response = await fetch(`/api/products?${params.toString()}`)
           </div>
           <div>
             <label className="text-sm font-medium block mb-1">Prix min</label>
-            <input 
-              type="number" 
-              placeholder="0" 
+            <input
+              type="number"
+              placeholder="0"
               className="w-full px-3 py-2 rounded-lg border border-border bg-white"
               value={filters.minPrice}
               onChange={(e) => handleFilterChange('minPrice', e.target.value)}
@@ -205,9 +224,9 @@ const response = await fetch(`/api/products?${params.toString()}`)
           </div>
           <div>
             <label className="text-sm font-medium block mb-1">Prix max</label>
-            <input 
-              type="number" 
-              placeholder="1000" 
+            <input
+              type="number"
+              placeholder="1000"
               className="w-full px-3 py-2 rounded-lg border border-border bg-white"
               value={filters.maxPrice}
               onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
@@ -215,7 +234,7 @@ const response = await fetch(`/api/products?${params.toString()}`)
           </div>
           <div>
             <label className="text-sm font-medium block mb-1">Trier par</label>
-            <select 
+            <select
               className="w-full px-3 py-2 rounded-lg border border-border bg-white"
               value={filters.sort}
               onChange={(e) => handleFilterChange('sort', e.target.value)}
@@ -243,7 +262,7 @@ const response = await fetch(`/api/products?${params.toString()}`)
       ) : (
         <div className={`grid ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4' : 'grid-cols-1'} gap-4`}>
           {products.map((product) => (
-            <ProductCard 
+            <ProductCard
               key={product.id}
               id={product.id}
               name={product.name}
@@ -256,6 +275,10 @@ const response = await fetch(`/api/products?${params.toString()}`)
               rating={product.rating || 0}
               reviewsCount={product.reviews_count || 0}
               stock={product.stock || 0}
+              isInPromotion={product.is_in_promotion}
+              promotionPrice={product.promotion_price}
+              promotionStart={product.promotion_start}
+              promotionEnd={product.promotion_end}
             />
           ))}
         </div>
@@ -263,46 +286,16 @@ const response = await fetch(`/api/products?${params.toString()}`)
 
       {/* Pagination */}
       {!loading && products.length > 0 && totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-8 flex-wrap">
-          <Button 
-            variant="outline" 
-            disabled={filters.page === 0}
-            onClick={() => handlePageChange(filters.page - 1)}
-          >
-            Précédent
-          </Button>
-          
-          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-            let pageNum: number
-            if (totalPages <= 5) {
-              pageNum = i
-            } else if (filters.page < 3) {
-              pageNum = i
-            } else if (filters.page > totalPages - 3) {
-              pageNum = totalPages - 4 + i
-            } else {
-              pageNum = filters.page - 1 + i
-            }
-            
-            return (
-              <Button
-                key={pageNum}
-                variant={filters.page === pageNum ? 'primary' : 'outline'}
-                className={filters.page === pageNum ? 'bg-primary text-white hover:bg-primary/90' : ''}
-                onClick={() => handlePageChange(pageNum)}
-              >
-                {pageNum + 1}
-              </Button>
-            )
-          })}
-
-          <Button 
-            variant="outline"
-            disabled={filters.page >= totalPages - 1}
-            onClick={() => handlePageChange(filters.page + 1)}
-          >
-            Suivant
-          </Button>
+        <div className="mt-8 bg-white rounded-xl border border-border overflow-hidden">
+          <Pagination
+            currentPage={filters.page}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            disabled={loading}
+            totalItems={totalCount}
+            itemsPerPage={filters.limit}
+            showPageSize={false}
+          />
         </div>
       )}
     </div>

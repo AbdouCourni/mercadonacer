@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight, ShoppingBag, Truck, Clock, Shield } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingBag, Truck, Clock, Shield, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -47,10 +47,10 @@ const slides = [
 ]
 
 const features = [
-  { icon: <Truck size={16} />, text: 'Livraison 24h' },
-  { icon: <Clock size={16} />, text: 'Service 7/7' },
-  { icon: <Shield size={16} />, text: 'Paiement sécurisé' },
-  { icon: <ShoppingBag size={16} />, text: '5000+ produits' },
+  { icon: <Truck size={18} />, text: 'Livraison 24-48h' },
+  { icon: <MessageCircle size={18} />, text: 'Support WhatsApp' },
+  { icon: <Shield size={18} />, text: 'Paiement à la livraison' },
+  { icon: <ShoppingBag size={18} />, text: '5000+ produits' },
 ]
 
 export default function HeroSlider() {

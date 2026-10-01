@@ -10,8 +10,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoogleIcon } from '@/components/ui/google-icon'
-import { signIn, signInWithGoogle, getUser } from '@/services/auth.service'
+import { signIn, signInWithGoogle, getUser, signOut } from '@/services/auth.service'
 import { mergeGuestCart } from '@/services/cart.client.service'
+import { isVitrineMode } from '@/lib/site-mode'
 export const dynamic = 'force-dynamic'
 
 
@@ -33,38 +34,54 @@ export default function LoginForm() {
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+  e.preventDefault()
+  setError(null)
 
-    if (!email.trim()) {
-      setError('Veuillez entrer votre email')
-      return
-    }
-
-    if (!password.trim()) {
-      setError('Veuillez entrer votre mot de passe')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      await signIn(email, password)
-      
-      // 🔥 After successful login, merge guest cart
-      const user = await getUser()
-      if (user) {
-        await mergeGuestCart(user.id)
-        window.dispatchEvent(new Event('cartUpdated'))
-      }
-      
-      router.push('/')
-    } catch (err: any) {
-      setError(err.message || 'Email ou mot de passe incorrect')
-    } finally {
-      setLoading(false)
-    }
+  if (!email.trim() || !password.trim()) {
+    setError('Veuillez remplir tous les champs')
+    return
   }
+
+  setLoading(true)
+
+  try {
+    await signIn(email, password)
+
+    // In vitrine mode, only allow users with roles
+    if (isVitrineMode()) {
+      const user = await getUser()
+      if (!user) throw new Error('Utilisateur non trouvé')
+
+      // Check if user has any role
+      const roleRes = await fetch('/api/user/role')
+      const roleData = await roleRes.json()
+
+      if (!roleData.role || roleData.role === 'user' || roleData.role === 'client') {
+        // Not an admin — sign out and show message
+        await signOut()
+        setError('Accès réservé à l\'administration. Contactez-nous pour commander.')
+        setLoading(false)
+        return
+      }
+
+      // User is admin — proceed
+      router.push('/admin')
+      return
+    }
+
+    // Commerce mode — normal flow
+    const user = await getUser()
+    if (user) {
+      await mergeGuestCart(user.id)
+      window.dispatchEvent(new Event('cartUpdated'))
+    }
+    router.push('/')
+  } catch (err: any) {
+    setError(err.message || 'Email ou mot de passe incorrect')
+  } finally {
+    setLoading(false)
+  }
+}
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -148,11 +165,15 @@ export default function LoginForm() {
         </div>
 
         {/* Forgot Password */}
+        {!isVitrineMode() && (
+
         <div className="text-right">
           <Link href="/forgot-password" className="text-sm text-primary hover:underline">
             Mot de passe oublié ?
           </Link>
         </div>
+        )}
+
 
         {/* Submit */}
         <Button
@@ -188,12 +209,14 @@ export default function LoginForm() {
       </Button>
 
       {/* Register Link */}
-      <p className="text-center text-sm text-text-secondary mt-6">
-        Pas encore de compte ?{' '}
-        <Link href="/register" className="text-primary hover:underline font-medium">
-          Créer un compte
-        </Link>
-      </p>
+    {!isVitrineMode() && (
+  <p className="text-center text-sm text-text-secondary mt-6">
+    Pas encore de compte ?{' '}
+    <Link href="/register" className="text-primary hover:underline font-medium">
+      Créer un compte
+    </Link>
+  </p>
+)}
     </div>
   )
 }

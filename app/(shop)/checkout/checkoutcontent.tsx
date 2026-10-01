@@ -12,6 +12,9 @@ import { Button } from '@/components/ui/button'
 import { getUser } from '@/services/auth.service'
 import { getGuestCart } from '@/services/cart.client.service'
 import { CircularZone } from '@/config/delivery-zones'
+import { isVitrineMode } from '@/lib/site-mode'
+import { getEffectivePrice, toNumber } from '@/types/product.types'
+
 
 interface CartItem {
   id: string
@@ -37,6 +40,13 @@ interface CartItem {
 
 export default function CheckoutContent() {
   const router = useRouter()
+  
+  useEffect(() => {
+  if (isVitrineMode()) {
+    router.replace('/products')
+  }
+}, [router])
+
   const searchParams = useSearchParams()
   
   // 🔥 Get delivery zone from URL params
@@ -131,10 +141,14 @@ export default function CheckoutContent() {
   }, [])
 
   // Calculate totals
-  const subtotal = cartItems.reduce((total, item) => {
-    const price = item.products?.price || 0
-    return total + (price * item.quantity)
-  }, 0)
+
+const subtotal = cartItems.reduce((total, item) => {
+  const product = item.products
+  const price = product 
+    ? getEffectivePrice(product as any) 
+    : toNumber(item.products?.price || 0)
+  return total + (price * item.quantity)
+}, 0)
 
   // 🔥 Use delivery fee from URL or default to 0
   const deliveryFee = selectedZone?.fee ?? (deliveryFeeFromUrl ? parseFloat(deliveryFeeFromUrl) : 0)
@@ -185,14 +199,16 @@ export default function CheckoutContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: cartItems.map(item => ({
-            product_id: item.product_id,
-            variant_id: item.variant_id,
-            quantity: item.quantity,
-            price: item.products?.price || 0,
-            product_name: item.products?.name || '',
-            product_slug: item.products?.slug || ''
-          })),
+         items: cartItems.map(item => ({
+  product_id: item.product_id,
+  variant_id: item.variant_id,
+  quantity: item.quantity,
+  price: item.products 
+    ? getEffectivePrice(item.products as any)
+    : 0,  // ✅ effective price
+  product_name: item.products?.name || '',
+  product_slug: item.products?.slug || '',
+})),
           address: formData.address,
           address_line2: formData.address_line2,
           city: formData.city,

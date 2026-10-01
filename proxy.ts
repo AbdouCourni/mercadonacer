@@ -67,6 +67,7 @@ export async function proxy(request: NextRequest) {
     '/legal',
     '/refund',
     '/delivery',
+    '/promotions'
   ]
   
   const isPublic = publicRoutes.some((route) => 

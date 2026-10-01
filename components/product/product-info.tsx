@@ -1,31 +1,33 @@
 // File: components/product/product-info.tsx
 // Path: /components/product/product-info.tsx
-// Description: Product information with wishlist
+// Description: Product information with promo, WhatsApp, and cart
 
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  Star, 
-  ShoppingCart, 
-  Heart, 
-  Minus, 
-  Plus, 
-  Truck, 
-  Clock, 
-  Shield, 
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  Minus,
+  Plus,
+  Truck,
+  Clock,
+  Shield,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  MessageCircle,
+  Tag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getUser } from '@/services/auth.service'
-import { addToGuestCart } from '@/services/cart.client.service'
-  import { dispatchCartUpdate } from '@/services/cart.client.service'
-
+import { addToGuestCart, dispatchCartUpdate } from '@/services/cart.client.service'
+import { buildProductOrderMessage, buildWhatsAppUrl, isVitrineMode } from '@/lib/site-mode'
+import { toNumber, isPromotionActive } from '@/types/product.types'
 
 interface ProductInfoProps {
   product: any
@@ -44,18 +46,41 @@ export default function ProductInfo({ product }: ProductInfoProps) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [wishlistId, setWishlistId] = useState<string | null>(null)
 
-
   const hasVariants = product.variants && product.variants.length > 0
   const variants = product.variants || []
 
-  // Check if user is logged in and if product is in wishlist
+  // ============================================
+  // PROMO CALCULATION
+  // ============================================
+  const promoActive = isPromotionActive({
+    is_in_promotion: product.is_in_promotion,
+    promotion_price: product.promotion_price,
+    promotion_start: product.promotion_start,
+    promotion_end: product.promotion_end,
+  } as any)
+
+  const basePrice = toNumber(product.price)
+  const effectivePrice = promoActive && product.promotion_price
+    ? toNumber(product.promotion_price)
+    : basePrice
+
+  const comparePriceNum = product.compare_price
+    ? toNumber(product.compare_price)
+    : null
+
+  const promoDiscount = promoActive && basePrice > 0 && effectivePrice < basePrice
+    ? Math.round(((basePrice - effectivePrice) / basePrice) * 100)
+    : 0
+
+  // ============================================
+  // WISHLIST CHECK
+  // ============================================
   useEffect(() => {
     const checkAuthAndWishlist = async () => {
       const user = await getUser()
       setIsLoggedIn(!!user)
 
       if (user) {
-        // Check if product is in wishlist
         try {
           const response = await fetch(`/api/wishlist/check?productId=${product.id}`)
           if (response.ok) {
@@ -72,23 +97,31 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     checkAuthAndWishlist()
   }, [product.id])
 
-  // Get selected variant data
-  const selectedVariantData = selectedVariant 
+  // ============================================
+  // VARIANT
+  // ============================================
+  const selectedVariantData = selectedVariant
     ? variants.find((v: any) => v.id === selectedVariant)
     : null
 
-  // Determine price and stock
-  const displayPrice = selectedVariantData?.price || product.price
-  const displayComparePrice = selectedVariantData?.compare_price || product.compare_price
-  const displayStock = selectedVariantData?.stock || product.stock
+  // If a variant is selected, its price overrides
+  const displayPrice = selectedVariantData
+    ? toNumber(selectedVariantData.price)
+    : effectivePrice
+
+  const displayComparePrice = selectedVariantData
+    ? (selectedVariantData.compare_price ? toNumber(selectedVariantData.compare_price) : null)
+    : (promoActive ? basePrice : comparePriceNum)
+
+  const displayStock = selectedVariantData
+    ? selectedVariantData.stock
+    : product.stock
+
   const isInStock = displayStock > 0
 
-  // Calculate discount
-  const discount = displayComparePrice 
-    ? Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100)
-    : 0
-
-  // Add to cart
+  // ============================================
+  // ADD TO CART
+  // ============================================
   const handleAddToCart = async () => {
     if (!isInStock) {
       setError('Ce produit est en rupture de stock')
@@ -111,18 +144,19 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         body: JSON.stringify({
           productId: product.id,
           variantId: selectedVariant || null,
-          quantity
-        })
+          quantity,
+        }),
       })
 
-      const data = await response.json()
-
-    if (response.ok) {
-  setSuccess('Produit ajouté au panier !')
-  dispatchCartUpdate() // 🔥 Make sure this is called
-  router.refresh()
-  setTimeout(() => setSuccess(null), 3000)
-}
+      if (response.ok) {
+        setSuccess('Produit ajouté au panier !')
+        dispatchCartUpdate()
+        router.refresh()
+        setTimeout(() => setSuccess(null), 3000)
+      } else {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de l\'ajout au panier')
+      }
     } catch (error: any) {
       console.error('Error adding to cart:', error)
       setError(error.message || 'Erreur lors de l\'ajout au panier')
@@ -132,7 +166,9 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     }
   }
 
-  // Toggle wishlist
+  // ============================================
+  // WISHLIST
+  // ============================================
   const toggleWishlist = async () => {
     if (!isLoggedIn) {
       setShowLoginPrompt(true)
@@ -144,9 +180,8 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
     try {
       if (isWishlisted) {
-        // Remove from wishlist
         const response = await fetch(`/api/wishlist?productId=${product.id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
         })
 
         if (!response.ok) {
@@ -158,11 +193,10 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         setWishlistId(null)
         setSuccess('Retiré de votre liste d\'envies')
       } else {
-        // Add to wishlist
         const response = await fetch('/api/wishlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: product.id })
+          body: JSON.stringify({ productId: product.id }),
         })
 
         if (!response.ok) {
@@ -179,14 +213,16 @@ export default function ProductInfo({ product }: ProductInfoProps) {
       setTimeout(() => setSuccess(null), 3000)
     } catch (error: any) {
       console.error('Wishlist error:', error)
-      setError(error.message || 'Erreur lors de la modification de la liste d\'envies')
+      setError(error.message || 'Erreur lors de la modification')
       setTimeout(() => setError(null), 3000)
     } finally {
       setIsWishlistLoading(false)
     }
   }
 
-  // Guest add to cart (localStorage)
+  // ============================================
+  // GUEST ADD
+  // ============================================
   const handleGuestAddToCart = () => {
     addToGuestCart(product.id, quantity, selectedVariant || undefined)
     setSuccess('Produit ajouté au panier ! (en local)')
@@ -194,7 +230,22 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     setTimeout(() => setSuccess(null), 3000)
   }
 
-  // Update quantity
+  // ============================================
+  // WHATSAPP ORDER (vitrine mode)
+  // ============================================
+  const handleWhatsAppOrder = () => {
+    const msg = buildProductOrderMessage(
+      product.name,
+      displayPrice,           // ✅ uses effective price
+      selectedVariantData?.name || null,
+      quantity
+    )
+    window.open(buildWhatsAppUrl(msg), '_blank')
+  }
+
+  // ============================================
+  // QUANTITY
+  // ============================================
   const decreaseQuantity = () => {
     if (quantity > 1) setQuantity(quantity - 1)
   }
@@ -203,6 +254,9 @@ export default function ProductInfo({ product }: ProductInfoProps) {
     if (quantity < displayStock) setQuantity(quantity + 1)
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="space-y-5">
       {/* Product Name */}
@@ -219,8 +273,8 @@ export default function ProductInfo({ product }: ProductInfoProps) {
                 key={i}
                 size={16}
                 className={cn(
-                  i < Math.floor(product.rating) 
-                    ? 'fill-accent text-accent' 
+                  i < Math.floor(toNumber(product.rating))
+                    ? 'fill-accent text-accent'
                     : 'text-border fill-border'
                 )}
               />
@@ -232,19 +286,27 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         </div>
       )}
 
+      {/* 🆕 PROMO BADGE */}
+      {promoActive && promoDiscount > 0 && (
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+          <Tag size={14} />
+          Promotion : -{promoDiscount}%
+        </div>
+      )}
+
       {/* Price */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <span className="text-3xl font-bold text-primary">
           {displayPrice.toFixed(2)} DH
         </span>
-        {displayComparePrice && (
+        {displayComparePrice && displayComparePrice > displayPrice && (
           <span className="text-base text-text-secondary line-through">
             {displayComparePrice.toFixed(2)} DH
           </span>
         )}
-        {discount > 0 && (
+        {!promoActive && comparePriceNum && comparePriceNum > effectivePrice && (
           <span className="px-3 py-1 bg-primary text-white text-sm font-bold rounded-full">
-            -{discount}%
+            -{Math.round(((comparePriceNum - effectivePrice) / comparePriceNum) * 100)}%
           </span>
         )}
       </div>
@@ -261,7 +323,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
         )}
       </div>
 
-      {/* Error/Success Messages */}
+      {/* Error / Success */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
           {error}
@@ -304,7 +366,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
                 onClick={handleGuestAddToCart}
                 className="w-full text-sm text-text-secondary hover:text-primary transition-colors py-2"
               >
-                Continuer en tant qu'invité (ajouter au panier local)
+                Continuer en tant qu'invité
               </button>
               <button
                 onClick={() => setShowLoginPrompt(false)}
@@ -320,25 +382,23 @@ export default function ProductInfo({ product }: ProductInfoProps) {
       {/* Variants */}
       {hasVariants && (
         <div className="space-y-2">
-          <label className="text-sm font-medium text-text-primary">
-            Variante
-          </label>
+          <label className="text-sm font-medium text-text-primary">Variante</label>
           <div className="flex flex-wrap gap-2">
             {variants.map((variant: any) => (
               <button
                 key={variant.id}
                 onClick={() => setSelectedVariant(variant.id)}
                 className={cn(
-                  "px-4 py-2 rounded-full border-2 text-sm transition-all",
+                  'px-4 py-2 rounded-full border-2 text-sm transition-all',
                   selectedVariant === variant.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border hover:border-primary/50"
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border hover:border-primary/50'
                 )}
               >
                 {variant.name}
-                {variant.price && variant.price !== product.price && (
+                {variant.price && toNumber(variant.price) !== basePrice && (
                   <span className="text-xs text-text-secondary ml-1">
-                    (+{(variant.price - product.price).toFixed(2)} DH)
+                    (+{(toNumber(variant.price) - basePrice).toFixed(2)} DH)
                   </span>
                 )}
               </button>
@@ -349,9 +409,7 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
       {/* Quantity */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-text-primary">
-          Quantité
-        </label>
+        <label className="text-sm font-medium text-text-primary">Quantité</label>
         <div className="flex items-center gap-2">
           <button
             onClick={decreaseQuantity}
@@ -376,73 +434,67 @@ export default function ProductInfo({ product }: ProductInfoProps) {
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button
-          onClick={handleAddToCart}
-          disabled={!isInStock || isAddingToCart}
-          size="lg"
-          className="flex-1 bg-primary text-white hover:bg-primary/90 transform hover:scale-105 transition-all duration-300"
-        >
-          {isAddingToCart ? (
-            <>
-              <Loader2 size={18} className="animate-spin mr-2" />
-              Ajout...
-            </>
-          ) : (
-            <>
-              <ShoppingCart size={18} className="mr-2" />
-              Ajouter au panier
-            </>
-          )}
-        </Button>
+        {isVitrineMode() ? (
+          <Button
+            size="lg"
+            onClick={handleWhatsAppOrder}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+          >
+            <MessageCircle size={18} className="mr-2" />
+            Commander via WhatsApp
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            onClick={handleAddToCart}
+            disabled={!isInStock}
+            className="w-full bg-primary"
+          >
+            <ShoppingCart size={18} className="mr-2" />
+            Ajouter au panier
+          </Button>
+        )}
 
-        <Button
-          onClick={toggleWishlist}
-          disabled={isWishlistLoading}
-          variant="outline"
-          size="lg"
-          className={cn(
-            "transition-all duration-300 min-w-[140px]",
-            isWishlisted && "border-primary text-primary bg-primary/10"
-          )}
-        >
-          {isWishlistLoading ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <>
-              <Heart 
-                size={18} 
-                className={cn("mr-2 transition-all", isWishlisted && "fill-primary")} 
-              />
-              {isWishlisted ? 'Ajouté' : 'Ajouter aux favoris'}
-            </>
-          )}
-        </Button>
+        {!isVitrineMode() && (
+          <Button
+            onClick={toggleWishlist}
+            disabled={isWishlistLoading}
+            variant="outline"
+            size="lg"
+            className={cn(
+              'transition-all duration-300 min-w-[140px]',
+              isWishlisted && 'border-primary text-primary bg-primary/10'
+            )}
+          >
+            {isWishlistLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
+                <Heart
+                  size={18}
+                  className={cn('mr-2 transition-all', isWishlisted && 'fill-primary')}
+                />
+                {isWishlisted ? 'Ajouté' : 'Ajouter aux favoris'}
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Delivery Info */}
       <div className="grid grid-cols-3 gap-2 pt-4 border-t border-border">
         <div className="text-center p-2 bg-muted rounded-lg">
           <Truck size={18} className="mx-auto text-primary mb-1" />
-          <p className="text-xs text-text-secondary">Livraison 24h</p>
+          <p className="text-xs text-text-secondary">Livraison 24-48h</p>
         </div>
         <div className="text-center p-2 bg-muted rounded-lg">
           <Clock size={18} className="mx-auto text-primary mb-1" />
-          <p className="text-xs text-text-secondary">Service 7/7</p>
+          <p className="text-xs text-text-secondary">Support WhatsApp</p>
         </div>
         <div className="text-center p-2 bg-muted rounded-lg">
           <Shield size={18} className="mx-auto text-primary mb-1" />
-          <p className="text-xs text-text-secondary">Paiement sécurisé</p>
+          <p className="text-xs text-text-secondary">Paiement à la livraison</p>
         </div>
-      </div>
-
-      {/* Trust Badge */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center text-sm text-text-secondary">
-        <p>
-          🛒 Livraison gratuite à partir de 200 DH · 
-          <span className="text-primary font-medium ml-1">
-            Paiement à la livraison
-          </span>
-        </p>
       </div>
     </div>
   )

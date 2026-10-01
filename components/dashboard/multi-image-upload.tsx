@@ -100,15 +100,23 @@ const uploadToCloudinary = async (file: File): Promise<ProductImage> => {
     [images, maxImages, onChange]
   )
 
- const removeImage = async (id: string) => {
+const removeImage = async (id: string) => {
   const imageToRemove = images.find(img => img.id === id)
-  
+
+  console.log('🗑️ [removeImage] Starting delete:', {
+    imageId: id,
+    publicId: imageToRemove?.publicId,
+    url: imageToRemove?.url,
+    hasPublicId: !!imageToRemove?.publicId,
+  })
+
   // Delete from Cloudinary if it has a publicId
   if (imageToRemove?.publicId) {
     try {
-      console.log('🗑️ Deleting image from Cloudinary:', imageToRemove.publicId)
-      
-      // Use the same working approach as product delete
+      console.log('📤 [removeImage] Sending request to /api/cloudinary/delete with:', {
+        publicId: imageToRemove.publicId,
+      })
+
       const response = await fetch('/api/cloudinary/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,15 +124,27 @@ const uploadToCloudinary = async (file: File): Promise<ProductImage> => {
       })
 
       const result = await response.json()
-      
+
+      console.log('📥 [removeImage] Response:', {
+        ok: response.ok,
+        status: response.status,
+        body: result,
+      })
+
       if (response.ok) {
         console.log('✅ Image deleted from Cloudinary:', imageToRemove.publicId)
       } else {
-        console.error('❌ Failed to delete image:', result.error)
+        console.error('❌ Failed to delete image:', {
+          status: response.status,
+          error: result.error,
+          body: result,
+        })
       }
     } catch (error) {
       console.error('❌ Error deleting image from Cloudinary:', error)
     }
+  } else {
+    console.warn('⚠️ [removeImage] No publicId — skipping Cloudinary delete')
   }
 
   // Remove from local state
@@ -136,7 +156,7 @@ const uploadToCloudinary = async (file: File): Promise<ProductImage> => {
   }
 
   onChange(updated)
-}
+} 
 
   const setPrimaryImage = (id: string) => {
     const updated = images.map(img => ({

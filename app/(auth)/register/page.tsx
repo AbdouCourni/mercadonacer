@@ -4,6 +4,8 @@
 
 'use client'
 
+import { isVitrineMode, VITRINE_WHATSAPP } from '@/lib/site-mode'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -84,7 +86,37 @@ export default function RegisterPage() {
       setLoading(false)
     }
   }
-
+   if (isVitrineMode()) {
+    return (
+      <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 border border-border max-w-[400px] mx-auto w-full text-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">🚧</span>
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold text-text-primary mb-2">
+          Inscription temporairement fermée
+        </h1>
+        <p className="text-sm text-text-secondary mb-6">
+          Notre boutique en ligne sera bientôt disponible. En attendant, 
+          contactez-nous directement pour passer commande.
+        </p>
+        <a
+          href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block"
+        >
+          <Button className="bg-green-600 text-white hover:bg-green-700">
+            Commander via WhatsApp
+          </Button>
+        </a>
+        <div className="mt-4">
+          <Link href="/products" className="text-sm text-primary hover:underline">
+            Découvrir nos produits
+          </Link>
+        </div>
+      </div>
+    )
+  }
   return (
 <div className="bg-white rounded-lg shadow-md p-4 sm:p-5 border border-border max-w-[400px] mx-auto w-full"> 
         <div className="text-center mb-6 sm:mb-8">

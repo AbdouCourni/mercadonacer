@@ -1,95 +1,65 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
+import Image from 'next/image'
+import { getOptimizedImage } from '@/lib/cloudinary'
 
 interface CategoryCardProps {
-  id: number
+  id: string
   name: string
-  slug: string   
-  icon?: React.ReactNode
-  image?: string
+  slug: string
+  image?: string | null
   productCount?: number
 }
 
-export default function CategoryCard({ 
-  id, 
-  name, 
+export default function CategoryCard({
+  id,
+  name,
   slug,
-  icon, 
-  image, 
-  productCount 
+  image,
+  productCount,
 }: CategoryCardProps) {
-  // Emoji icons for categories (fallback)
-  const getEmoji = (name: string) => {
-    const emojis: Record<string, string> = {
-      'Fruits et Legumes Frais': '🥬',
-      'Fruitsec Kilogram': '🥜',
-      'Olives et Herbes': '🫒',
-      'Viandes et Poissons': '🥩',
-      'Pains et Patisseries': '🥖',
-      'Preparation et Ingredients': '🧂',
-      'Cremerie': '🧀',
-      'Epicerie': '🛒',
-      'Nuts et Fruitsec': '🌰',
-      'Biscuits et Gateaux': '🍪',
-      'Chocolats et Bonbons': '🍫',
-      'Dietetique': '💪',
-      'Bio et Ecologie': '🌱',
-      'Boissons': '🥤',
-      'Congelé et Surgeles': '🧊',
-      'Bébé': '👶',
-      'Cosmétique et Beaute': '💄',
-      'Parapharmacie': '💊',
-      'Nettoyage': '🧹',
-      'Papier': '📄',
-      'Maison et Cuisine': '🍳',
-      'Electromenager': '🔌',
-      'Bibliotheque': '📚',
-      'Jeux et Jouets': '🎮',
-      'Bébé Vétements': '👕',
-      'Femme Vetements': '👗',
-      'Homme Vetements': '👔',
-      'Animaux': '🐾',
-      'ART DIVERS': '🎨'
-    }
-    return emojis[name] || '📦'
-  }
-
+  const hasImage = image && image.length > 0
 
   return (
-    <Link href={`/categories/${slug}`}>
-      <div className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 card-hover border border-border/50">
-        {/* Icon/Image */}
-     {/* Icon/Image */}
-<div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300 overflow-hidden">
-  {image ? (
-    <img
-      src={image}
-      alt={name}
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    <span>{icon || getEmoji(name)}</span>
-  )}
-</div>
-
-        {/* Name */}
-        <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors">
-          {name}
-        </h3>
-
-        {/* Product count */}
-        {productCount !== undefined && (
-          <p className="text-sm text-text-secondary mt-1">
-            {productCount} produits
-          </p>
+    <Link href={`/categories/${slug}`} className="group block">
+      <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
+        {/* Image or fallback */}
+        {hasImage ? (
+          <Image
+            src={getOptimizedImage(image, { width: 400, height: 400 })}
+            alt={name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className="object-cover group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+            <span className="text-5xl">📦</span>
+          </div>
         )}
 
-        {/* Arrow on hover */}
-        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-          <ArrowRight size={20} className="text-primary" />
+        {/* Dark gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+        {/* Content */}
+        <div className="absolute inset-0 flex flex-col justify-end p-4 text-white">
+          <h3 className="font-bold text-base md:text-lg leading-tight line-clamp-2 group-hover:text-primary-100 transition-colors">
+            {name}
+          </h3>
+          {productCount !== undefined && (
+            <p className="text-xs md:text-sm text-white/80 mt-1">
+              {productCount} produit{productCount > 1 ? 's' : ''}
+            </p>
+          )}
         </div>
+
+        {/* Optional badge for count */}
+        {productCount !== undefined && productCount > 0 && (
+          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm text-primary text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
+            {productCount}
+          </div>
+        )}
       </div>
     </Link>
   )

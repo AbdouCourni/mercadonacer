@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { isVitrineMode } from '@/lib/site-mode'
+
 
 // ============================================
 // HELPER: Get Supabase client with session
@@ -36,6 +38,12 @@ function getSupabaseClient() {
 // ============================================
 export async function GET() {
   try {
+    if (isVitrineMode()) {
+  return NextResponse.json(
+    { error: 'Le site est actuellement en mode vitrine. Les commandes ne sont pas disponibles.' },
+    { status: 403 }
+  )
+}
     const supabase = getSupabaseClient()
     
     // Get user from session
@@ -83,6 +91,13 @@ export async function GET() {
 // ============================================
 export async function POST(request: NextRequest) {
   try {
+
+    if (isVitrineMode()) {
+  return NextResponse.json(
+    { error: 'Le site est actuellement en mode vitrine. Les commandes ne sont pas disponibles.' },
+    { status: 403 }
+  )
+}
     const supabase = getSupabaseClient()
     
     // Get user from session
@@ -190,6 +205,12 @@ export async function POST(request: NextRequest) {
 // ============================================
 export async function PATCH(request: NextRequest) {
   try {
+    if (isVitrineMode()) {
+  return NextResponse.json(
+    { error: 'Le site est actuellement en mode vitrine. Les commandes ne sont pas disponibles.' },
+    { status: 403 }
+  )
+}
     const supabase = getSupabaseClient()
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -270,6 +291,12 @@ export async function PATCH(request: NextRequest) {
 // ============================================
 export async function DELETE(request: NextRequest) {
   try {
+    if (isVitrineMode()) {
+  return NextResponse.json(
+    { error: 'Le site est actuellement en mode vitrine. Les commandes ne sont pas disponibles.' },
+    { status: 403 }
+  )
+}
     const supabase = getSupabaseClient()
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()

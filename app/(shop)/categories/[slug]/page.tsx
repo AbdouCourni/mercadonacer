@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
 import { CategorySort } from '@/components/category/category-sort'
-import { CategoryPagination } from '@/components/category/category-pagination'
+import { CategoryPaginationClient } from '@/components/category/category-pagination-client'
 
 interface CategoryPageProps {
   params: {
@@ -192,18 +192,26 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 stock={product.stock || 0}
                 isNew={product.is_new || false}
                 isSale={product.compare_price ? product.compare_price > product.price : false}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
               />
             ))}
           </div>
 
           {/* Pagination - Client Component */}
           {totalPages > 1 && (
-            <CategoryPagination
-              slug={slug}
-              currentPage={page}
-              totalPages={totalPages}
-              sort={sort}
-            />
+            <div className="mt-8 bg-white rounded-xl border border-border overflow-hidden">
+              <CategoryPaginationClient
+                slug={slug}
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={totalProducts}
+                itemsPerPage={limit}
+                sort={sort}
+              />
+            </div>
           )}
         </>
       ) : (

@@ -1,202 +1,173 @@
 // File: app/(shop)/privacy/page.tsx
 // Path: /app/(shop)/privacy/page.tsx
-// Description: Privacy Policy page
 
-import Link from 'next/link'
-import { ArrowLeft, Shield, Lock, Eye, Database, UserCheck, Mail } from 'lucide-react'
+'use client'
 
-export const metadata = {
-  title: 'Politique de confidentialité | Mercado Nacer',
-  description: 'Découvrez comment nous protégeons vos données personnelles',
-}
+import { Shield } from 'lucide-react'
+import { LegalPageLayout } from '@/components/LegalPageLayout'
+import { useLegalLanguage } from '@/lib/legal-language'
 
 export default function PrivacyPage() {
-  const lastUpdated = '15 Septembre 2026'
-  
+  const { language } = useLegalLanguage()
+  const ar = language === 'ar'
+
   return (
-    <div className="container-custom py-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link href="/" className="p-2 hover:bg-muted rounded-lg transition-colors">
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-text-primary flex items-center gap-2">
-            <Shield className="text-primary" size={28} />
-            Politique de confidentialité
-          </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Dernière mise à jour: {lastUpdated}
-          </p>
-        </div>
-      </div>
+    <LegalPageLayout
+      titleFr="Politique de confidentialité"
+      titleAr="سياسة الخصوصية"
+      icon={<Shield className="text-primary" size={28} />}
+    >
+      <div className="space-y-6 text-text-secondary leading-relaxed">
+        <p className="text-text-primary font-medium">
+          {ar ? 'آخر تحديث: 1 أكتوبر 2026' : 'Dernière mise à jour : 1er octobre 2026'}
+        </p>
 
-      {/* Content */}
-      <div className="bg-white rounded-xl border border-border p-8 space-y-8">
-        {/* Intro */}
-        <section>
-          <p className="text-text-secondary leading-relaxed">
-            Chez <strong className="text-text-primary">Mercado Nacer</strong>, nous accordons une grande importance 
-            à la protection de votre vie privée et de vos données personnelles. Cette politique de confidentialité 
-            vous explique quelles données nous collectons, comment nous les utilisons et quels sont vos droits.
-          </p>
-        </section>
+        <p>
+          {ar
+            ? 'في ميركادو ناصر، نولي أهمية كبيرة لحماية خصوصيتك وبياناتك الشخصية. توضح سياسة الخصوصية هذه البيانات التي نجمعها وكيفية استخدامها وحقوقك.'
+            : 'Chez Mercado Nacer, nous accordons une grande importance à la protection de votre vie privée et de vos données personnelles. Cette politique vous explique quelles données nous collectons, comment nous les utilisons et quels sont vos droits.'}
+        </p>
 
-        {/* 1. Data we collect */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3 flex items-center gap-2">
-            <Database size={20} className="text-primary" />
-            1. Données que nous collectons
-          </h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Lorsque vous utilisez notre site, nous pouvons collecter les données suivantes:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Identité:</strong> nom, prénom</li>
-              <li><strong>Contact:</strong> adresse email, numéro de téléphone</li>
-              <li><strong>Adresse de livraison:</strong> rue, ville, code postal</li>
-              <li><strong>Données de commande:</strong> produits achetés, montant, date</li>
-              <li><strong>Données techniques:</strong> adresse IP, navigateur, appareil</li>
-              <li><strong>Cookies:</strong> pour améliorer votre expérience</li>
-            </ul>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          1. {ar ? 'البيانات التي نجمعها' : 'Données que nous collectons'}
+        </h2>
+        <ul className="list-disc list-inside space-y-1 ml-4">
+          {ar ? (
+            <>
+              <li><strong>الهوية:</strong> الاسم الكامل</li>
+              <li><strong>بيانات الاتصال:</strong> البريد الإلكتروني، رقم الهاتف</li>
+              <li><strong>عنوان التوصيل:</strong> الشارع، المدينة، الرمز البريدي</li>
+              <li><strong>بيانات الطلب:</strong> المنتجات المطلوبة، المبلغ، التاريخ</li>
+              <li><strong>البيانات التقنية:</strong> عنوان IP، المتصفح، الجهاز</li>
+            </>
+          ) : (
+            <>
+              <li><strong>Identité :</strong> nom complet</li>
+              <li><strong>Contact :</strong> adresse email, numéro de téléphone</li>
+              <li><strong>Adresse de livraison :</strong> rue, ville, code postal</li>
+              <li><strong>Données de commande :</strong> produits, montant, date</li>
+              <li><strong>Données techniques :</strong> IP, navigateur, appareil</li>
+            </>
+          )}
+        </ul>
 
-        {/* 2. How we use data */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3 flex items-center gap-2">
-            <UserCheck size={20} className="text-primary" />
-            2. Utilisation de vos données
-          </h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Vos données sont utilisées pour:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          2. {ar ? 'استخدام البيانات' : 'Utilisation de vos données'}
+        </h2>
+        <ul className="list-disc list-inside space-y-1 ml-4">
+          {ar ? (
+            <>
+              <li>معالجة وتوصيل طلباتك</li>
+              <li>التواصل معك بخصوص طلبك عبر الهاتف أو واتساب</li>
+              <li>تحسين خدماتنا وتجربتك</li>
+              <li>احترام التزاماتنا القانونية</li>
+            </>
+          ) : (
+            <>
               <li>Traiter et livrer vos commandes</li>
-              <li>Vous contacter concernant votre commande (téléphone, WhatsApp, email)</li>
-              <li>Améliorer nos services et votre expérience</li>
-              <li>Vous envoyer des offres promotionnelles (avec votre accord)</li>
+              <li>Vous contacter au sujet de votre commande (téléphone, WhatsApp)</li>
+              <li>Améliorer nos services</li>
               <li>Respecter nos obligations légales</li>
-            </ul>
-          </div>
-        </section>
+            </>
+          )}
+        </ul>
 
-        {/* 3. Data sharing */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3 flex items-center gap-2">
-            <Eye size={20} className="text-primary" />
-            3. Partage de vos données
-          </h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Vos données ne sont <strong>jamais vendues</strong>. Elles peuvent être partagées uniquement avec:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Nos livreurs:</strong> nom, adresse, téléphone (pour la livraison uniquement)</li>
-              <li><strong>Nos employés:</strong> pour préparer votre commande</li>
-              <li><strong>Prestataires techniques:</strong> hébergement, paiement</li>
-              <li><strong>Autorités légales:</strong> si requis par la loi</li>
-            </ul>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          3. {ar ? 'مشاركة البيانات' : 'Partage de vos données'}
+        </h2>
+        <p>
+          {ar
+            ? 'لا نبيع بياناتك أبداً. يمكن مشاركتها فقط مع:'
+            : 'Vos données ne sont jamais vendues. Elles peuvent être partagées avec :'}
+        </p>
+        <ul className="list-disc list-inside space-y-1 ml-4">
+          {ar ? (
+            <>
+              <li>موظفينا ولدينا للتوصيل (الاسم، العنوان، الهاتف فقط)</li>
+              <li>مزودي الخدمات التقنية (الاستضافة، الدفع)</li>
+              <li>السلطات القانونية عند الطلب</li>
+            </>
+          ) : (
+            <>
+              <li>Nos employés et livreurs (nom, adresse, téléphone uniquement)</li>
+              <li>Nos prestataires techniques (hébergement, paiement)</li>
+              <li>Les autorités légales si requis</li>
+            </>
+          )}
+        </ul>
 
-        {/* 4. Data security */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3 flex items-center gap-2">
-            <Lock size={20} className="text-primary" />
-            4. Sécurité de vos données
-          </h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>
-              Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles 
-              pour protéger vos données contre tout accès non autorisé, modification, 
-              divulgation ou destruction.
-            </p>
-            <p>
-              Vos données sont stockées sur des serveurs sécurisés et sont chiffrées lors du transfert.
-            </p>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          4. {ar ? 'أمن البيانات' : 'Sécurité de vos données'}
+        </h2>
+        <p>
+          {ar
+            ? 'نطبق تدابير أمنية تقنية وتنظيمية لحماية بياناتك من أي وصول غير مصرح به أو تعديل أو إفشاء أو إتلاف.'
+            : 'Nous mettons en œuvre des mesures de sécurité techniques et organisationnelles pour protéger vos données contre tout accès non autorisé, modification, divulgation ou destruction.'}
+        </p>
 
-        {/* 5. Retention */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3">5. Conservation des données</h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Nous conservons vos données:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Données de commande:</strong> 5 ans (obligation comptable)</li>
-              <li><strong>Données de compte:</strong> jusqu'à suppression de votre compte</li>
-              <li><strong>Cookies:</strong> maximum 13 mois</li>
-            </ul>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          5. {ar ? 'مدة الاحتفاظ' : 'Conservation des données'}
+        </h2>
+        <ul className="list-disc list-inside space-y-1 ml-4">
+          {ar ? (
+            <>
+              <li>بيانات الطلب: 5 سنوات (التزام محاسبي)</li>
+              <li>بيانات الحساب: حتى حذف الحساب</li>
+              <li>ملفات تعريف الارتباط: 13 شهراً كحد أقصى</li>
+            </>
+          ) : (
+            <>
+              <li>Données de commande : 5 ans (obligation comptable)</li>
+              <li>Données de compte : jusqu\'à suppression</li>
+              <li>Cookies : 13 mois maximum</li>
+            </>
+          )}
+        </ul>
 
-        {/* 6. Your rights */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3">6. Vos droits</h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Conformément à la loi 09-08 relative à la protection des données personnelles au Maroc, vous avez le droit de:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Accéder</strong> à vos données personnelles</li>
-              <li><strong>Rectifier</strong> vos données inexactes</li>
-              <li><strong>Supprimer</strong> vos données (droit à l'oubli)</li>
-              <li><strong>Vous opposer</strong> au traitement de vos données</li>
-              <li><strong>Retirer votre consentement</strong> à tout moment</li>
-            </ul>
-            <p className="mt-3">
-              Pour exercer ces droits, contactez-nous à:{' '}
-              <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">
-                contact@mercadonacer.com
-              </a>
-            </p>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          6. {ar ? 'حقوقك' : 'Vos droits'}
+        </h2>
+        <p>
+          {ar
+            ? 'وفقاً للقانون 09-08 المتعلق بحماية البيانات الشخصية، لديك الحق في:'
+            : 'Conformément à la loi 09-08 relative à la protection des données personnelles, vous avez le droit de :'}
+        </p>
+        <ul className="list-disc list-inside space-y-1 ml-4">
+          {ar ? (
+            <>
+              <li>الوصول إلى بياناتك الشخصية</li>
+              <li>تصحيح بياناتك غير الدقيقة</li>
+              <li>حذف بياناتك (حق النسيان)</li>
+              <li>الاعتراض على معالجة بياناتك</li>
+            </>
+          ) : (
+            <>
+              <li>Accéder à vos données personnelles</li>
+              <li>Rectifier vos données inexactes</li>
+              <li>Supprimer vos données (droit à l\'oubli)</li>
+              <li>Vous opposer au traitement</li>
+            </>
+          )}
+        </ul>
 
-        {/* 7. Cookies */}
-        <section>
-          <h2 className="text-xl font-bold text-text-primary mb-3">7. Cookies</h2>
-          <div className="space-y-3 text-text-secondary">
-            <p>Nous utilisons des cookies pour:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Mémoriser votre panier</li>
-              <li>Garder votre session active</li>
-              <li>Analyser le trafic (Google Analytics)</li>
-            </ul>
-            <p>Vous pouvez désactiver les cookies dans les paramètres de votre navigateur.</p>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          7. {ar ? 'ملفات تعريف الارتباط' : 'Cookies'}
+        </h2>
+        <p>
+          {ar
+            ? 'نستخدم ملفات تعريف الارتباط لحفظ سلة التسوق والحفاظ على جلستك وتحليل حركة المرور. يمكنك تعطيلها في إعدادات متصفحك.'
+            : 'Nous utilisons des cookies pour mémoriser votre panier, garder votre session active et analyser le trafic. Vous pouvez les désactiver dans les paramètres de votre navigateur.'}
+        </p>
 
-        {/* 8. Contact */}
-        <section className="pt-6 border-t border-border">
-          <h2 className="text-xl font-bold text-text-primary mb-3 flex items-center gap-2">
-            <Mail size={20} className="text-primary" />
-            8. Contact
-          </h2>
-          <div className="space-y-2 text-text-secondary">
-            <p>Pour toute question concernant cette politique:</p>
-            <ul className="space-y-1">
-              <li>📧 Email: <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
-              <li>📱 Téléphone: <a href="tel:+212XXXXXXXXX" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
-              <li>📍 Adresse: [Votre adresse], Nador, Maroc</li>
-            </ul>
-          </div>
-        </section>
+        <h2 className="text-xl font-bold text-text-primary pt-4">
+          8. {ar ? 'الاتصال بنا' : 'Contact'}
+        </h2>
+        <ul className="space-y-1">
+          <li>📧 Email: <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
+          <li>📱 WhatsApp: <a href="https://wa.me/212654063922" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
+          <li>📍 {ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</li>
+        </ul>
       </div>
-
-      {/* Links to other pages */}
-      <div className="mt-6 flex flex-wrap gap-3 justify-center">
-        <Link href="/terms" className="text-sm text-primary hover:underline">
-          Conditions d'utilisation
-        </Link>
-        <span className="text-text-secondary">•</span>
-        <Link href="/legal" className="text-sm text-primary hover:underline">
-          Mentions légales
-        </Link>
-        <span className="text-text-secondary">•</span>
-        <Link href="/refund" className="text-sm text-primary hover:underline">
-          Politique de retour
-        </Link>
-        <span className="text-text-secondary">•</span>
-        <Link href="/delivery" className="text-sm text-primary hover:underline">
-          Politique de livraison
-        </Link>
-      </div>
-    </div>
+    </LegalPageLayout>
   )
 }

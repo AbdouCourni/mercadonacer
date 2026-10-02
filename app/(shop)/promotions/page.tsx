@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Promotions | Mercado Nacer',
-  description: 'Découvrez nos meilleures offres et promotions',
+  title: 'Promotions',
+  description: 'Découvrez nos meilleures offres et promotions. Produits à prix réduits, livraison rapide à Nador.',
+  alternates: { canonical: '/promotions' },
 }
 
 export default async function PromotionsPage() {

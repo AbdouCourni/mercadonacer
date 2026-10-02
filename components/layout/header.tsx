@@ -305,18 +305,29 @@ export default function Header() {
         <div className="flex items-center justify-between gap-3">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-              <span className="text-white font-bold text-lg md:text-xl">M</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-lg md:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">
-                Mercado<span className="text-accent">Nacer</span>
-              </span>
-              <span className="text-[10px] md:text-xs block text-text-secondary leading-tight">
-                Votre supermarché en ligne
-              </span>
-            </div>
-          </Link>
+  {/* Logo image */}
+  <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shadow-md group-hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-primary to-accent-2">
+    {/* Fallback: gradient with M if logo fails to load */}
+    <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg md:text-xl">
+      M
+    </span>
+    {/* Logo image (layered on top) */}
+    <img
+      src="/logo.png"
+      alt="Mercado Nacer"
+      className="relative z-10 w-full h-full object-contain"
+    />
+  </div>
+
+  <div className="hidden sm:block">
+    <span className="text-lg md:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">
+      Mercado<span className="text-accent">Nacer</span>
+    </span>
+    <span className="text-[10px] md:text-xs block text-text-secondary leading-tight">
+      Votre supermarché en ligne
+    </span>
+  </div>
+</Link>
 
           {/* Search */}
           <div className="hidden md:flex flex-1 max-w-xl mx-2">

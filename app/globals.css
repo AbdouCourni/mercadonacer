@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 :root {
   /* Base */
   --background: #ffffff;
@@ -10,6 +11,9 @@
   --secondary: #2e7d32;    /* Green from logo */
   --accent: #ff7a00;       /* Orange from gradient */
   --accent-2: #c2185b;     /* Pink/Purple from gradient */
+
+  /* --font-sans: 'Inter', system-ui, sans-serif;
+  --font-arabic: 'Cairo', system-ui, sans-serif; */
 
   /* Neutral */
   --muted: #f5f5f5;
@@ -25,6 +29,15 @@
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+html[dir='rtl'] {
+  font-family: var(--font-arabic);
+}
+
+/* RTL adjustments */
+html[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
 }
 
 @theme inline {

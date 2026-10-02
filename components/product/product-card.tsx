@@ -160,7 +160,7 @@ export default function ProductCard({
     e.stopPropagation()
 
     // Send effective price (promo applies)
-    const message = buildProductOrderMessage(name, effectivePrice)
+const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
     const url = buildWhatsAppUrl(message)
     window.open(url, '_blank')
   }

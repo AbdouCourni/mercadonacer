@@ -238,7 +238,8 @@ export default function ProductInfo({ product }: ProductInfoProps) {
       product.name,
       displayPrice,           // ✅ uses effective price
       selectedVariantData?.name || null,
-      quantity
+      quantity,
+      product.slug 
     )
     window.open(buildWhatsAppUrl(msg), '_blank')
   }

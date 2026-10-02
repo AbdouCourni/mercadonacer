@@ -12,6 +12,8 @@ import RelatedProducts from '@/components/product/related-products'
 import ProductReviews from '@/components/product/product-reviews'
 import { ChevronRight, Home } from 'lucide-react'
 export const dynamic = 'force-dynamic'
+import type { Metadata } from 'next'
+
 
 
 
@@ -19,6 +21,80 @@ interface ProductPageProps {
   params: {
     slug: string
   }
+}
+
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { slug } = await params
+  const product = await getProductBySlug(slug)
+  
+  if (!product) {
+    return { title: 'Produit introuvable' }
+  }
+
+  const image = product.images?.[0] || '/og-image.jpg'
+  const price = Number(product.price).toFixed(2)
+  
+  return {
+    title: `${product.name} — ${price} DH`,
+    description: product.description?.slice(0, 155) || 
+      `Achetez ${product.name} chez Mercado Nacer. Livraison 24-48h à Nador. Paiement à la livraison.`,
+    openGraph: {
+      title: product.name,
+      description: product.description?.slice(0, 155) || '',
+      images: [{ url: image, width: 800, height: 800, alt: product.name }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      images: [image],
+    },
+    alternates: {
+      canonical: `/products/${slug}`,
+    },
+  }
+}
+
+function ProductJsonLd({ product }: { product: any }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images?.[0],
+    description: product.description,
+    sku: product.sku,
+    barcode: product.barcode,
+    brand: {
+      '@type': 'Brand',
+      name: product.brand || 'Mercado Nacer',
+    },
+    offers: {
+      '@type': 'Offer',
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/products/${product.slug}`,
+      priceCurrency: 'MAD',
+      price: product.price,
+      availability: product.stock > 0 
+        ? 'https://schema.org/InStock' 
+        : 'https://schema.org/OutOfStock',
+      seller: {
+        '@type': 'Organization',
+        name: 'Mercado Nacer',
+      },
+    },
+    // Rating (only if real reviews exist — otherwise remove)
+    // aggregateRating: {
+    //   '@type': 'AggregateRating',
+    //   ratingValue: product.rating,
+    //   reviewCount: product.reviews_count,
+    // },
+  }
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  )
 }
 
 // Generate static paths for all products (ISR)
@@ -51,6 +127,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="container-custom py-6 md:py-8">
+      <ProductJsonLd product={product} />
+
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-text-secondary mb-6 overflow-x-auto whitespace-nowrap">
         <Link href="/" className="hover:text-primary transition-colors flex items-center gap-1">

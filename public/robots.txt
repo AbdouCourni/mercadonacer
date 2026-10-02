@@ -1,0 +1,22 @@
+# Mercado Nacer — robots.txt
+# https://nacermarket.com
+
+User-agent: *
+Allow: /
+
+# Block admin and checkout
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /account/
+
+# Allow Google to crawl product images
+User-agent: Googlebot-Image
+Allow: /
+
+# Sitemap location
+Sitemap: https://nacermarket.com/sitemap.xml

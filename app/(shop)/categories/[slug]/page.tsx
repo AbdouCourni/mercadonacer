@@ -1,11 +1,12 @@
 // File: app/(shop)/categories/[slug]/page.tsx
 // Path: /app/(shop)/categories/[slug]/page.tsx
-// Description: Category page - FIXED with client components
+// Description: Category page with SEO metadata
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Package } from 'lucide-react'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
@@ -13,24 +14,79 @@ import { CategorySort } from '@/components/category/category-sort'
 import { CategoryPaginationClient } from '@/components/category/category-pagination-client'
 
 interface CategoryPageProps {
-  params: {
-    slug: string
-  }
-  searchParams?: {
-    sort?: string
-    page?: string
-  }
+  params: Promise<{ slug: string }>
+  searchParams?: Promise<{ sort?: string; page?: string }>
 }
 
 // Disable static generation - always fetch at request time
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
+// ============================================
+// SEO METADATA
+// ============================================
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
   const { slug } = await params
-  const page = searchParams?.page ? parseInt(searchParams.page) : 0
+  const supabase = await createClient()
+
+  const { data: category } = await supabase
+    .from('categories')
+    .select('name, description, image_url')
+    .eq('slug', slug)
+    .single()
+
+  if (!category) {
+    return {
+      title: 'Catégorie introuvable',
+      robots: { index: false, follow: false },
+    }
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nacermarket.com'
+  const description =
+    category.description ||
+    `Découvrez tous nos produits dans la catégorie ${category.name}. Livraison rapide à Nador (24-48h). Paiement à la livraison.`
+
+  return {
+    title: category.name,
+    description: description.slice(0, 155),
+    alternates: {
+      canonical: `/categories/${slug}`,
+    },
+    openGraph: {
+      title: `${category.name} | Mercado Nacer`,
+      description: description.slice(0, 155),
+      url: `${baseUrl}/categories/${slug}`,
+      images: category.image_url
+        ? [{ url: category.image_url, width: 800, height: 800, alt: category.name }]
+        : [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'Mercado Nacer' }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: category.name,
+      description: description.slice(0, 155),
+      images: category.image_url ? [category.image_url] : ['/og-image.jpg'],
+    },
+  }
+}
+
+// ============================================
+// PAGE
+// ============================================
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: CategoryPageProps) {
+  const { slug } = await params
+  const sp = searchParams ? await searchParams : {}
+  const page = sp?.page ? parseInt(sp.page) : 0
   const limit = 20
-  const sort = searchParams?.sort || 'created_at-desc'
+  const sort = sp?.sort || 'created_at-desc'
 
   const supabase = await createClient()
 
@@ -108,7 +164,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <span>/</span>
         {parentCategory && (
           <>
-            <Link href={`/categories/${parentCategory.slug}`} className="hover:text-primary transition-colors">
+            <Link
+              href={`/categories/${parentCategory.slug}`}
+              className="hover:text-primary transition-colors"
+            >
               {parentCategory.name}
             </Link>
             <span>/</span>
@@ -148,7 +207,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       {/* Subcategories */}
       {subcategories && subcategories.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-sm font-medium text-text-secondary mb-3">Sous-catégories</h2>
+          <h2 className="text-sm font-medium text-text-secondary mb-3">
+            Sous-catégories
+          </h2>
           <div className="flex flex-wrap gap-2">
             {subcategories.map((sub) => (
               <Link
@@ -163,7 +224,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         </div>
       )}
 
-      {/* Sort Component - Client Component */}
+      {/* Sort */}
       <CategorySort
         currentSort={sort}
         totalProducts={totalProducts}
@@ -174,7 +235,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       {/* Products */}
       {products && products.length > 0 ? (
         <>
-          {/* Products Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {products.map((product) => (
               <ProductCard
@@ -191,7 +251,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                 reviewsCount={product.reviews_count || 0}
                 stock={product.stock || 0}
                 isNew={product.is_new || false}
-                isSale={product.compare_price ? product.compare_price > product.price : false}
+                isSale={
+                  product.compare_price
+                    ? product.compare_price > product.price
+                    : false
+                }
                 isInPromotion={product.is_in_promotion}
                 promotionPrice={product.promotion_price}
                 promotionStart={product.promotion_start}
@@ -200,24 +264,23 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             ))}
           </div>
 
-          {/* Pagination - Client Component */}
           {totalPages > 1 && (
-            <div className="mt-8 bg-white rounded-xl border border-border overflow-hidden">
-              <CategoryPaginationClient
-                slug={slug}
-                currentPage={page}
-                totalPages={totalPages}
-                totalItems={totalProducts}
-                itemsPerPage={limit}
-                sort={sort}
-              />
-            </div>
+            <CategoryPaginationClient
+              slug={slug}
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalProducts}
+              itemsPerPage={limit}
+              sort={sort}
+            />
           )}
         </>
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border border-border">
           <Package size={48} className="mx-auto text-text-secondary/30 mb-4" />
-          <h3 className="text-lg font-medium text-text-primary">Aucun produit</h3>
+          <h3 className="text-lg font-medium text-text-primary">
+            Aucun produit
+          </h3>
           <p className="text-text-secondary">
             Cette catégorie ne contient pas encore de produits.
           </p>

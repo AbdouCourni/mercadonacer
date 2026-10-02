@@ -1,11 +1,12 @@
 // File: components/LegalPageLayout.tsx
 // Path: /components/LegalPageLayout.tsx
-// Description: Reusable layout for legal pages
+// Description: Reusable layout for legal pages (Suspense-wrapped)
 
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { LegalLanguageToggle } from './LegalLanguageToggle'
 import { useLegalLanguage } from '@/lib/legal-language'
 
@@ -16,7 +17,10 @@ interface LegalPageLayoutProps {
   children: React.ReactNode
 }
 
-export function LegalPageLayout({
+// ============================================
+// INNER (uses useSearchParams via useLegalLanguage)
+// ============================================
+function LegalPageInner({
   titleFr,
   titleAr,
   icon,
@@ -26,6 +30,7 @@ export function LegalPageLayout({
 
   const title = language === 'ar' ? titleAr : titleFr
   const backLabel = language === 'ar' ? 'رجوع' : 'Retour'
+
   const footerLinks =
     language === 'ar'
       ? [
@@ -92,5 +97,22 @@ export function LegalPageLayout({
         ))}
       </div>
     </div>
+  )
+}
+
+// ============================================
+// PUBLIC WRAPPER (Suspense)
+// ============================================
+export function LegalPageLayout(props: LegalPageLayoutProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="container-custom py-20 flex justify-center">
+          <Loader2 size={32} className="animate-spin text-primary" />
+        </div>
+      }
+    >
+      <LegalPageInner {...props} />
+    </Suspense>
   )
 }

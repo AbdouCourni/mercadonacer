@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { getProducts } from '@/services/products.service'
 import { createClient } from '@/lib/supabase/server'
-import { isVitrineMode } from '@/lib/site-mode'
+import { isVitrineMode, VITRINE_WHATSAPP } from '@/lib/site-mode'
 import { Tag, MessageCircle } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -234,7 +234,7 @@ export default async function HomePage() {
                 contactez-nous directement sur WhatsApp pour passer votre commande.
               </p>
               <a
-                href={`https://wa.me/${(process.env.NEXT_PUBLIC_VITRINE_WHATSAPP || '').replace(/[^0-9]/g, '')}`}
+href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

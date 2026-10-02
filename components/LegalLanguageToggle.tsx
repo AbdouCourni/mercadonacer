@@ -4,10 +4,11 @@
 
 'use client'
 
+import { Suspense } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-export function LegalLanguageToggle() {
+function ToggleInner() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -52,5 +53,20 @@ export function LegalLanguageToggle() {
         AR
       </button>
     </div>
+  )
+}
+
+export function LegalLanguageToggle() {
+  return (
+    <Suspense
+      fallback={
+        <div className="inline-flex items-center rounded-lg border border-border overflow-hidden bg-white opacity-50">
+          <span className="px-4 py-2 text-sm">FR</span>
+          <span className="px-4 py-2 text-sm">AR</span>
+        </div>
+      }
+    >
+      <ToggleInner />
+    </Suspense>
   )
 }

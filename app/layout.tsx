@@ -3,6 +3,8 @@
 
 import type { Metadata } from 'next'
 import './globals.css'
+import { GoogleAnalytics } from '@/components/GoogleAnalytics'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   // Base
@@ -151,8 +153,31 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" dir="ltr">
+      <head>
+         <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-SQ0WJ868GH"
+          strategy="afterInteractive"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-SQ0WJ868GH', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+        </head>
       <body className="font-sans antialiased">
         <OrganizationJsonLd />
+                <GoogleAnalytics />
+
         {children}
       </body>
     </html>

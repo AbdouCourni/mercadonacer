@@ -38,7 +38,7 @@ export default function ContactPage() {
               <Phone size={24} className="text-primary" />
             </div>
             <h3 className="font-semibold text-text-primary">Téléphone</h3>
-            <p className="text-sm text-text-secondary">+212 5XX-XXXXXX</p>
+            <p className="text-sm text-text-secondary">+212 615 797 765</p>
             <p className="text-xs text-text-secondary">Lun-Ven 9h-18h</p>
           </div>
 

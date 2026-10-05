@@ -36,6 +36,11 @@ export async function GET(request: NextRequest) {
   const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 0
   const includeInactive = searchParams.get('includeInactive') === 'true'
   const promo = searchParams.get('promo') === 'true'
+  // 🆕 These are extracted but used below
+  const category = searchParams.get('category')
+  const search = searchParams.get('search')
+  const stock = searchParams.get('stock')
+  const status = searchParams.get('status')
 
   try {
     const supabase = await createClient()
@@ -103,6 +108,8 @@ export async function GET(request: NextRequest) {
         query = query.eq('is_active', true)
       }
 
+
+
       const { data, error } = await query.single()
 
       if (error) {
@@ -148,9 +155,80 @@ export async function GET(request: NextRequest) {
         .or(`promotion_end.is.null,promotion_end.gte.${new Date().toISOString()}`)
     }
 
-    const { data, error, count } = await query
-      .range(from, to)
-      .order('created_at', { ascending: false })
+    // 🆕 Category filter
+    if (category) {
+      // If value looks like a slug (contains letters+dashes), resolve to ID
+      // Otherwise treat as UUID
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category)
+
+      if (isUuid) {
+        query = query.eq('category_id', category)
+      } else {
+        // Look up category ID by slug
+        const { data: catData } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('slug', category)
+          .single()
+
+        if (catData?.id) {
+          query = query.eq('category_id', catData.id)
+        } else {
+          // Slug doesn't match any category → return empty
+          return NextResponse.json({
+            products: [],
+            count: 0,
+            page,
+            limit,
+          })
+        }
+      }
+    }
+
+    // 🆕 Search filter
+    if (search) {
+      query = query.or(
+        `name.ilike.%${search}%,description.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`
+      )
+    }
+
+    // 🆕 Stock filter
+    if (stock === 'low') {
+      query = query.lt('stock', 10).gt('stock', 0)
+    } else if (stock === 'out') {
+      query = query.eq('stock', 0)
+    } else if (stock === 'in') {
+      query = query.gt('stock', 0)
+    }
+
+    // 🆕 Status filter
+    if (status === 'active') {
+      query = query.eq('is_active', true)
+    } else if (status === 'inactive') {
+      query = query.eq('is_active', false)
+    }
+
+    const minPrice = searchParams.get('minPrice')
+    const maxPrice = searchParams.get('maxPrice')
+    if (minPrice) query = query.gte('price', parseFloat(minPrice))
+    if (maxPrice) query = query.lte('price', parseFloat(maxPrice))
+
+    // 🆕 Sort
+    const sort = searchParams.get('sort')
+    if (sort === 'price-asc') {
+      query = query.order('price', { ascending: true })
+    } else if (sort === 'price-desc') {
+      query = query.order('price', { ascending: false })
+    } else if (sort === 'rating-desc') {
+      query = query.order('rating', { ascending: false })
+    } else {
+      query = query.order('created_at', { ascending: false })
+    }
+
+    // const { data, error, count } = await query
+    //   .range(from, to)
+    //   .order('created_at', { ascending: false })
+    const { data, error, count } = await query.range(from, to)
 
     if (error) {
       console.error('❌ Products list error:', error)
@@ -190,15 +268,15 @@ export async function POST(request: NextRequest) {
     const product = {
       ...body,
       price: parseFloat(body.price),
-        achat_price: body.achat_price ? parseFloat(body.achat_price) : null, // ← NEW
+      achat_price: body.achat_price ? parseFloat(body.achat_price) : null, // ← NEW
       compare_price: body.compare_price ? parseFloat(body.compare_price) : null,
       stock: parseInt(body.stock),
       weight: body.weight ? parseFloat(body.weight) : null,
       images: body.images || [],
-       is_in_promotion: body.is_in_promotion ?? false,
-  promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
-  promotion_start: body.promotion_start || null,
-  promotion_end: body.promotion_end || null,
+      is_in_promotion: body.is_in_promotion ?? false,
+      promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
+      promotion_start: body.promotion_start || null,
+      promotion_end: body.promotion_end || null,
     }
 
     const { data, error } = await supabase
@@ -263,10 +341,10 @@ export async function PATCH(request: NextRequest) {
       images: images,
       is_active: body.is_active,
       is_featured: body.is_featured,
-       is_in_promotion: body.is_in_promotion,
-  promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
-  promotion_start: body.promotion_start || null,
-  promotion_end: body.promotion_end || null,
+      is_in_promotion: body.is_in_promotion,
+      promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
+      promotion_start: body.promotion_start || null,
+      promotion_end: body.promotion_end || null,
     }
 
     const { data, error } = await supabase
@@ -309,7 +387,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const supabase = await createClient()
-    
+
     // 1. Get product images
     const { data: product, error: fetchError } = await supabase
       .from('products')
@@ -325,11 +403,11 @@ export async function DELETE(request: NextRequest) {
     if (product?.images && product.images.length > 0) {
       for (const imageUrl of product.images) {
         const publicId = extractPublicId(imageUrl)
-        
+
         if (publicId) {
           try {
             const result = await cloudinary.uploader.destroy(publicId)
-            
+
             if (result.result === 'ok') {
               // Deleted successfully
             } else if (result.result === 'not found') {
@@ -338,7 +416,7 @@ export async function DELETE(request: NextRequest) {
           } catch (error) {
             // Log Cloudinary error in response
             return NextResponse.json(
-              { 
+              {
                 error: 'Cloudinary deletion failed',
                 product_id: id,
                 image_url: imageUrl,
@@ -360,7 +438,7 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to delete product from database',
           product_id: id,
           db_error: error.message,
@@ -372,13 +450,13 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      deleted_product_id: id 
+    return NextResponse.json({
+      success: true,
+      deleted_product_id: id
     })
   } catch (error) {
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to delete product',
         product_id: id,
         exception: error instanceof Error ? error.message : String(error),

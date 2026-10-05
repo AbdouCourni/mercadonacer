@@ -164,7 +164,7 @@ export default function PrivacyContent() {
         </h2>
         <ul className="space-y-1">
           <li>📧 Email: <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
-          <li>📱 WhatsApp: <a href="https://wa.me/212654063922" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
+          <li>📱 WhatsApp: <a href="https://wa.me/212615797765" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
           <li>📍 {ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</li>
         </ul>
       </div>

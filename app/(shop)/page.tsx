@@ -21,7 +21,7 @@ export default async function HomePage() {
   // 1. New products (latest 8)
   // 2. Promo products (up to 8)
   // 3. Top categories (by display_order, with count)
-  const [newProductsResult, promoProductsResult, categoriesResult] = await Promise.all([
+  const [newProductsResult, promoProductsResult, categoriesResult,heroSlidesResult] = await Promise.all([
     // New products
     getProducts({
       limit: 8,
@@ -47,20 +47,27 @@ export default async function HomePage() {
       .limit(8),
 
     // Categories (important first)
-    supabase
-      .from('categories')
-      .select(`
-        *,
-        products:products (count)
-      `)
-      .order('display_order', { ascending: true, nullsFirst: false })
-      .order('name', { ascending: true })
-      .limit(8),
+ supabase
+  .from('categories')
+  .select(`
+    *,
+    products:products (count)
+  `)
+  .eq('display_in_home', true)
+  .order('display_order', { ascending: true, nullsFirst: false })
+  .order('name', { ascending: true }),
+
+  supabase
+    .from('hero_slides')
+    .select('id, title, subtitle, description, cta, link, image_url, icon, alt_text')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true }),
   ])
 
   const newProducts = newProductsResult.products || []
   const promoProducts = promoProductsResult.data || []
   const categories = categoriesResult.data || []
+  const heroSlides = heroSlidesResult.data || []
 
   const vitrine = isVitrineMode()
 
@@ -69,8 +76,8 @@ export default async function HomePage() {
       {/* ============================================
           HERO
           ============================================ */}
-      <section className="container-custom pt-4">
-        <HeroSlider />
+      <section className="container-custom pt-8">
+  <HeroSlider slides={heroSlides} />
       </section>
 
       {/* ============================================

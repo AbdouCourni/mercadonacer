@@ -121,8 +121,8 @@ export default function AboutContent() {
             <Phone size={20} className="text-primary flex-shrink-0 mt-1" />
             <div>
               <p className="font-medium text-text-primary">{ar ? 'الهاتف' : 'Téléphone'}</p>
-              <a href="tel:+212654063922" className="text-sm text-primary hover:underline">
-                +212 654 063 922
+              <a href="tel:+212615797765" className="text-sm text-primary hover:underline">
+                +212 615 797 765
               </a>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function AboutContent() {
               : 'Notre boutique en ligne est en préparation. Contactez-nous directement.'}
           </p>
           <a
-            href={`https://wa.me/212654063922`}
+            href={`https://wa.me/212615797765`}
             target="_blank"
             rel="noopener noreferrer"
           >

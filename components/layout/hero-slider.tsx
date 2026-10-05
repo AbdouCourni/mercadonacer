@@ -6,54 +6,44 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
-import { ChevronLeft, ChevronRight, ShoppingBag, Truck, Clock, Shield, MessageCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingBag, Truck, Clock, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
-const slides = [
+export interface HeroSlide {
+  id: string
+  title: string
+  subtitle: string | null
+  description: string | null
+  cta: string | null
+  link: string | null
+  image_url: string
+  icon: string | null
+  alt_text: string | null
+}
+
+interface HeroSliderProps {
+  slides?: HeroSlide[]
+}
+
+// Fallback slides if DB is empty
+const FALLBACK_SLIDES: HeroSlide[] = [
   {
-    id: 1,
-    title: 'Des Produits Frais',
-    subtitle: 'Directement du marché à votre porte',
-    description: 'Découvrez notre sélection de fruits, légumes et viandes fraîches, livrés en 24h.',
+    id: 'fallback-1',
+    title: 'Bienvenue chez Mercado Nacer',
+    subtitle: 'Votre supermarché en ligne',
+    description: 'Découvrez nos produits frais et de qualité.',
     cta: 'Découvrir',
     link: '/products',
-    image: 'https://i.imgur.com/wTh7ck5.png',
-    icon: '🥬',
-    alt: 'Produits frais - Fruits et légumes'
+    image_url: 'https://i.imgur.com/wTh7ck5.png',
+    icon: '🛍️',
+    alt_text: 'Bienvenue chez Mercado Nacer',
   },
-  {
-    id: 2,
-    title: 'Plus de 5000 Produits',
-    subtitle: 'Tout ce dont vous avez besoin au même endroit',
-    description: 'De l\'épicerie à l\'électroménager, en passant par les jouets et les vêtements.',
-    cta: 'Voir les offres',
-    link: '/categories',
-    image: 'https://i.imgur.com/6B4XoUI.png',
-    icon: '🛒',
-    alt: '5000 produits - Épicerie et plus'
-  },
-  {
-    id: 3,
-    title: 'Livraison Rapide',
-    subtitle: 'Recevez vos courses en 24h',
-    description: 'Livraison dans toute la région. Commandez en toute confiance.',
-    cta: 'Commander maintenant',
-    link: '/products',
-    image: 'https://i.imgur.com/Cxk50AN.png',
-    icon: '🚚',
-    alt: 'Livraison rapide - 24h'
-  }
 ]
 
-const features = [
-  { icon: <Truck size={18} />, text: 'Livraison 24-48h' },
-  { icon: <MessageCircle size={18} />, text: 'Support WhatsApp' },
-  { icon: <Shield size={18} />, text: 'Paiement à la livraison' },
-  { icon: <ShoppingBag size={18} />, text: '5000+ produits' },
-]
+export default function HeroSlider({ slides: propSlides }: HeroSliderProps) {
+  const slides = propSlides && propSlides.length > 0 ? propSlides : FALLBACK_SLIDES
 
-export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
@@ -98,86 +88,87 @@ export default function HeroSlider() {
       {slides.map((slide, index) => (
         <div
           key={slide.id}
-          className={`absolute inset-0 transition-all duration-700 ease-in-out ${
-            index === currentSlide
-              ? 'opacity-100 scale-100 z-10'
-              : 'opacity-0 scale-105 z-0'
-          }`}
+          className={`absolute inset-0 transition-all duration-700 ease-in-out ${index === currentSlide
+            ? 'opacity-100 scale-100 z-10'
+            : 'opacity-0 scale-105 z-0'
+            }`}
         >
-          {/* Background Image */}
-          <Image
-            src={slide.image}
-            alt={slide.alt || slide.title}
-            fill
-            priority={index === 0}
-            className="object-cover"
-            sizes="100vw"
-            quality={85}
-          />
+         {/* Background Image */}
+<Image
+  src={slide.image_url}
+  alt={slide.alt_text || slide.title}
+  fill
+  priority={index === 0}
+  className="object-cover"
+  sizes="100vw"
+  quality={85}
+/>
 
-          {/* ✅ Overlay — lighter on mobile, darker on desktop */}
-          <div className="absolute inset-0 bg-black/40 md:bg-black/50 z-10" />
+{/* ✅ Lighter overlay — only bottom half for text */}
+<div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />
 
-          {/* ✅ Gradient — subtler on mobile to avoid muddy look */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent md:bg-gradient-to-r md:from-black/70 md:via-black/40 md:to-transparent z-10" />
+{/* Content */}
+<div className="absolute inset-0 flex items-end md:items-center z-20 pb-16 md:pb-0">
+  <div className="container-custom w-full">
+    <div className="max-w-2xl text-white">
+      {/* Icon */}
+      <div className="text-3xl md:text-5xl lg:text-6xl mb-3 md:mb-4 inline-block bg-white/15 backdrop-blur-sm p-2.5 md:p-3 rounded-xl md:rounded-2xl border border-white/20">
+        {slide.icon}
+      </div>
 
-          {/* Content */}
-          <div className="absolute inset-0 flex items-end md:items-center z-20 pb-16 md:pb-0">
-            <div className="container-custom w-full">
-              <div className="max-w-2xl text-white">
-                {/* ✅ Icon — no animation on mobile to save CPU, smaller */}
-                <div className="text-3xl md:text-5xl lg:text-6xl mb-3 md:mb-4 inline-block bg-white/15 backdrop-blur-sm p-2.5 md:p-3 rounded-xl md:rounded-2xl border border-white/20 md:animate-bounce">
-                  {slide.icon}
-                </div>
+      {/* Title */}
+      <h1 
+        className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 leading-tight"
+        style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}
+      >
+        {slide.title}
+      </h1>
 
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-3 leading-tight drop-shadow-lg">
-                  {slide.title}
-                </h1>
+      {/* Subtitle */}
+      {slide.subtitle && (
+        <p 
+          className="text-sm sm:text-base md:text-xl lg:text-2xl font-medium mb-2 opacity-95"
+          style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
+        >
+          {slide.subtitle}
+        </p>
+      )}
 
-                {/* Subtitle */}
-                <p className="text-sm sm:text-base md:text-xl lg:text-2xl font-medium mb-2 opacity-95 drop-shadow-lg">
-                  {slide.subtitle}
-                </p>
+      {/* Description */}
+      {slide.description && (
+        <p 
+          className="hidden sm:block text-sm md:text-base opacity-90 mb-4 md:mb-6 max-w-lg"
+          style={{ textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+        >
+          {slide.description}
+        </p>
+      )}
 
-                {/* Description — hidden on very small screens */}
-                <p className="hidden sm:block text-sm md:text-base opacity-90 mb-4 md:mb-6 max-w-lg drop-shadow-md">
-                  {slide.description}
-                </p>
-
-                {/* ✅ CTA Buttons — one on mobile, two on desktop */}
-                <div className="flex flex-wrap gap-2 md:gap-3">
-                  <Link href={slide.link}>
-                    <Button
-                      size="md"
-                      className="bg-primary text-white hover:bg-primary/90 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl px-5 md:px-8 text-sm md:text-base"
-                    >
-                      {slide.cta}
-                    </Button>
-                  </Link>
-                  <Link href="/categories" className="hidden md:inline-block">
-                    <Button
-                      size="md"
-                      variant="outline"
-                      className="border-2 border-white text-white hover:bg-white/20 transform hover:scale-105 transition-all duration-300 backdrop-blur-sm"
-                    >
-                      Toutes les catégories
-                    </Button>
-                  </Link>
-                </div>
-
-                {/* ✅ Features — horizontal scroll on mobile, hidden on small */}
-                <div className="hidden md:flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/20">
-                  {features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 text-sm text-white/90 backdrop-blur-sm bg-black/20 px-3 py-1.5 rounded-full border border-white/10">
-                      {feature.icon}
-                      <span>{feature.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* CTA Buttons */}
+      <div className="flex flex-wrap gap-2 md:gap-3">
+        {slide.link && slide.cta && (
+          <Link href={slide.link}>
+            <Button
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl px-5 md:px-8 text-sm md:text-base font-semibold"
+            >
+              {slide.cta}
+            </Button>
+          </Link>
+        )}
+        <Link href="/categories" className="hidden md:inline-block">
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-2 border-white text-white hover:bg-white/20 transform hover:scale-105 transition-all duration-300 backdrop-blur-sm"
+          >
+            Toutes les catégories
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+</div>
         </div>
       ))}
 
@@ -203,11 +194,10 @@ export default function HeroSlider() {
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full ${
-              index === currentSlide
-                ? 'w-6 md:w-8 h-2 md:h-2.5 bg-white shadow-lg'
-                : 'w-2 h-2 md:h-2.5 bg-white/50 hover:bg-white/70'
-            }`}
+            className={`transition-all duration-300 rounded-full ${index === currentSlide
+              ? 'w-6 md:w-8 h-2 md:h-2.5 bg-white shadow-lg'
+              : 'w-2 h-2 md:h-2.5 bg-white/50 hover:bg-white/70'
+              }`}
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}

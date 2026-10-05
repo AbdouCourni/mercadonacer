@@ -29,7 +29,7 @@ export default function LegalContent() {
           <li><strong>{ar ? 'المعرف الجبائي:' : 'ICE :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'الرقم الجبائي:' : 'IF :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'العنوان:' : 'Adresse :'}</strong> {ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</li>
-          <li><strong>{ar ? 'الهاتف:' : 'Téléphone :'}</strong> <a href="tel:+212654063922" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
+          <li><strong>{ar ? 'الهاتف:' : 'Téléphone :'}</strong> <a href="tel:+212615797765" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
           <li><strong>{ar ? 'البريد الإلكتروني:' : 'Email :'}</strong> <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
         </ul>
 

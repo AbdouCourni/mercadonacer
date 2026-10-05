@@ -4,23 +4,11 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ProductCard from '@/components/product/product-card'
 import { Button } from '@/components/ui/button'
-import { Filter, Grid, List, ChevronDown, Loader2 } from 'lucide-react'
+import { Filter, Grid, List, ChevronDown, Loader2, X } from 'lucide-react'
 import { Pagination } from '@/components/ui/pagination'
 
 // Get category slug from URL param
-const getCategorySlug = (categoryName: string) => {
-  const map: Record<string, string> = {
-    'Fruits et Légumes Frais': 'fruits-et-legumes',
-    'Viandes et Poissons': 'viandes-et-poissons',
-    'Épicerie': 'epicerie',
-    'Boissons': 'boissons',
-    'Maison et Cuisine': 'maison-et-cuisine',
-    'Électroménager': 'electromenager',
-    'Jeux et Jouets': 'jeux-et-jouets',
-    'Cosmétique et Beauté': 'cosmetique-et-beaute'
-  }
-  return map[categoryName] || categoryName.toLowerCase().replace(/\s+/g, '-')
-}
+
 
 export default function ProductsContent() {
   const searchParams = useSearchParams()
@@ -33,15 +21,33 @@ export default function ProductsContent() {
     ? Math.max(0, parseInt(searchParams.get('page')!) - 1)
     : 0
 
-  const [filters, setFilters] = useState({
-    category: searchParams.get('category') || '',
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    sort: searchParams.get('sort') || 'created_at-desc',
-    page: initialPage,
-    limit: 25   // was 20 — match admin
+ const [filters, setFilters] = useState({
+  search: searchParams.get('search') || '',      // 🆕
+  category: searchParams.get('category') || '',
+  minPrice: searchParams.get('minPrice') || '',
+  maxPrice: searchParams.get('maxPrice') || '',
+  sort: searchParams.get('sort') || 'created_at-desc',
+  page: initialPage,
+  limit: 25
+})
 
-  })
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([])
+
+  useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      if (response.ok) {
+        const data = await response.json()
+        setCategories(data.categories || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+    }
+  }
+  fetchCategories()
+}, [])
+
 
   // Fetch products
   useEffect(() => {
@@ -51,12 +57,11 @@ export default function ProductsContent() {
         const params = new URLSearchParams()
 
         // Convert category name to slug if needed
-        let categoryValue = filters.category
-        if (categoryValue && !categoryValue.includes('-')) {
-          categoryValue = getCategorySlug(categoryValue)
-        }
+        if (filters.search) params.append('search', filters.search)          // 🆕
 
-        if (categoryValue) params.append('category', categoryValue)
+       if (filters.category) params.append('category', filters.category)
+
+
         if (filters.minPrice) params.append('minPrice', filters.minPrice)
         if (filters.maxPrice) params.append('maxPrice', filters.maxPrice)
         if (filters.sort) params.append('sort', filters.sort)
@@ -94,6 +99,8 @@ export default function ProductsContent() {
   useEffect(() => {
     const params = new URLSearchParams()
 
+      if (filters.search) params.set('search', filters.search)              // 🆕
+
     if (filters.category) params.set('category', filters.category)
     if (filters.minPrice) params.set('minPrice', filters.minPrice)
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
@@ -122,14 +129,42 @@ export default function ProductsContent() {
   return (
     <div className="container-custom py-8">
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
-          Tous nos <span className="text-gradient">Produits</span>
-        </h1>
-        <p className="text-text-secondary mt-2">
-          {loading ? 'Chargement...' : `Découvrez notre sélection de ${totalCount} produits frais et de qualité`}
-        </p>
-      </div>
+     <div className="mb-8">
+  <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
+    {filters.search ? (
+      <>
+        Résultats pour <span className="text-gradient">"{filters.search}"</span>
+      </>
+    ) : (
+      <>
+        Tous nos <span className="text-gradient">Produits</span>
+      </>
+    )}
+  </h1>
+  <p className="text-text-secondary mt-2">
+    {loading
+      ? 'Chargement...'
+      : filters.search
+        ? `${totalCount} résultat${totalCount !== 1 ? 's' : ''} trouvé${totalCount !== 1 ? 's' : ''}`
+        : `Découvrez notre sélection de ${totalCount} produits frais et de qualité`}
+  </p>
+</div>
+{/* 🆕 Search chip */}
+{filters.search && (
+  <div className="flex items-center gap-2 mb-4 flex-wrap">
+    <span className="text-sm text-text-secondary">Recherche :</span>
+    <span className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+      "{filters.search}"
+      <button
+        onClick={() => setFilters(prev => ({ ...prev, search: '', page: 0 }))}
+        className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
+        aria-label="Effacer la recherche"
+      >
+        <X size={14} />
+      </button>
+    </span>
+  </div>
+)}
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -149,6 +184,7 @@ export default function ProductsContent() {
               size="sm"
               onClick={() => {
                 setFilters({
+                  search: '',
                   category: '',
                   minPrice: '',
                   maxPrice: '',
@@ -197,20 +233,17 @@ export default function ProductsContent() {
           <div>
             <label className="text-sm font-medium block mb-1">Catégorie</label>
             <select
-              className="w-full px-3 py-2 rounded-lg border border-border bg-white"
-              value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-            >
-              <option value="">Toutes</option>
-              <option value="fruits-et-legumes">Fruits et Légumes</option>
-              <option value="viandes-et-poissons">Viandes et Poissons</option>
-              <option value="epicerie">Épicerie</option>
-              <option value="boissons">Boissons</option>
-              <option value="maison-et-cuisine">Maison et Cuisine</option>
-              <option value="electromenager">Électroménager</option>
-              <option value="jeux-et-jouets">Jeux et Jouets</option>
-              <option value="cosmetique-et-beaute">Cosmétique et Beauté</option>
-            </select>
+  className="w-full px-3 py-2 rounded-lg border border-border bg-white"
+  value={filters.category}
+  onChange={(e) => handleFilterChange('category', e.target.value)}
+>
+  <option value="">Toutes les catégories</option>
+  {categories.map((cat) => (
+    <option key={cat.id} value={cat.slug}>
+      {cat.name}
+    </option>
+  ))}
+</select>
           </div>
           <div>
             <label className="text-sm font-medium block mb-1">Prix min</label>

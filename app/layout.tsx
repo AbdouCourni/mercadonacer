@@ -5,6 +5,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
 import Script from 'next/script'
+import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
+
 
 export const metadata: Metadata = {
   // Base
@@ -179,6 +181,7 @@ export default function RootLayout({
                 <GoogleAnalytics />
 
         {children}
+        <ServiceWorkerRegister />
       </body>
     </html>
   )

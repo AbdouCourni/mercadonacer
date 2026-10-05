@@ -160,7 +160,7 @@ export default function ProductCard({
     e.stopPropagation()
 
     // Send effective price (promo applies)
-const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
+    const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
     const url = buildWhatsAppUrl(message)
     window.open(url, '_blank')
   }
@@ -213,16 +213,16 @@ const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
       {/* ============================================
           IMAGE + OVERLAYS
           ============================================ */}
-      <Link
-        href={`/products/${slug}`}
-        className="relative block aspect-square overflow-hidden bg-muted"
-      >
+    <Link
+  href={`/products/${slug}`}
+  className="relative block aspect-square overflow-hidden bg-white"
+>
         <Image
           src={image || '/images/placeholder.jpg'}
           alt={name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+          className="object-contain group-hover:scale-105 transition-transform duration-500 bg-white"
         />
 
         {/* ============================================
@@ -318,9 +318,9 @@ const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
           ============================================ */}
       <div className="p-4">
         <Link href={`/products/${slug}`}>
-          <h3 className="font-medium text-text-primary hover:text-primary transition-colors line-clamp-2 min-h-[48px]">
-            {name}
-          </h3>
+          <h3 className="font-medium text-gray-900 hover:text-primary transition-colors line-clamp-2 min-h-[48px]">
+  {name}
+</h3>
         </Link>
 
         {/* Barcode / SKU */}
@@ -328,25 +328,23 @@ const message = buildProductOrderMessage(name, effectivePrice, null, 1, slug)
           <div className="flex items-center gap-1 mt-1 text-xs text-text-secondary">
             <Barcode size={12} />
             {barcode && <span>Code: {barcode}</span>}
-            {sku && <span className="ml-2">SKU: {sku}</span>}
           </div>
         )}
 
         {/* Rating */}
         <div className="flex items-center gap-1 mt-1">
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 size={14}
-                className={`${
-                  i < Math.floor(ratingNum)
+                className={`${i < Math.floor(ratingNum)
                     ? 'fill-accent text-accent'
                     : 'text-border fill-border'
-                }`}
+                  }`}
               />
             ))}
-          </div>
+          </div> */}
           {reviewsCount > 0 && (
             <span className="text-xs text-text-secondary">({reviewsCount})</span>
           )}

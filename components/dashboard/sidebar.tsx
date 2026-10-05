@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings,
   LogOut, Menu, X, ChevronRight, Home, BarChart3,
-  FolderOpen, Truck, ClipboardList
+  FolderOpen, Truck, ClipboardList,Image
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/services/auth.service'
@@ -27,7 +27,8 @@ const navItems = [
   { name: 'Livreurs', href: '/admin/driver', icon: Truck, roles: ['superadmin', 'admin', 'manager'] },
   { name: 'Analyses', href: '/admin/analytics', icon: BarChart3, roles: ['superadmin', 'admin'] },
   { name: 'Paramètres', href: '/admin/settings', icon: Settings, roles: ['superadmin', 'admin', 'manager'] },
-  { name: 'Mes livraisons', href: '/admin/driver/orders', icon: Truck, roles: ['driver'] }
+  { name: 'Mes livraisons', href: '/admin/driver/orders', icon: Truck, roles: ['driver'] },
+  { name: 'Bannière d\'accueil', href: '/admin/hero-slides', icon: Image, roles: ['superadmin', 'admin', 'manager'] },
 ]
 
 export function DashboardSidebar({ userRole, userName }: SidebarProps) {
@@ -70,13 +71,13 @@ export function DashboardSidebar({ userRole, userName }: SidebarProps) {
   return (
     <>
       {/* ✅ Mobile Top Header - Logo here, NOT in drawer */}
-   <button
-  onClick={() => setIsOpen(true)}
-  className="lg:hidden fixed top-4 left-4 z-40 p-3 bg-white shadow-lg rounded-full border border-border hover:bg-muted transition-all active:scale-95"
-  aria-label="Open menu"
->
-  <Menu size={22} />
-</button>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="lg:hidden fixed top-4 left-4 z-40 p-3 bg-white shadow-lg rounded-full border border-border hover:bg-muted transition-all active:scale-95"
+        aria-label="Open menu"
+      >
+        <Menu size={22} />
+      </button>
 
       {/* ✅ Mobile Overlay */}
       {isOpen && (
@@ -132,10 +133,10 @@ export function DashboardSidebar({ userRole, userName }: SidebarProps) {
                   userRole === 'driver' && "bg-cyan-100 text-cyan-700"
                 )}>
                   {userRole === 'superadmin' ? '👑' :
-                   userRole === 'admin' ? '⚡' :
-                   userRole === 'manager' ? '📋' :
-                   userRole === 'employee' ? '🛠️' :
-                   userRole === 'driver' ? '🚚' : ''}
+                    userRole === 'admin' ? '⚡' :
+                      userRole === 'manager' ? '📋' :
+                        userRole === 'employee' ? '🛠️' :
+                          userRole === 'driver' ? '🚚' : ''}
                 </span>
               </div>
             </div>

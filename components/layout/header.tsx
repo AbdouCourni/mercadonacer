@@ -260,18 +260,17 @@ export default function Header() {
     { href: '/', label: 'Accueil', icon: Home },
     { href: '/products', label: 'Produits', icon: Package },
     { href: '/categories', label: 'Catégories', icon: Grid3x3 },
-{ href: '/promotions', label: 'Promotions', icon: Tag },
+    { href: '/promotions', label: 'Promotions', icon: Tag },
     { href: '/about', label: 'À propos', icon: Info },
     { href: '/contact', label: 'Contact', icon: Phone },
   ]
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-border/50'
-          : 'bg-white border-b border-border/30'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-border/50'
+        : 'bg-white border-b border-border/30'
+        }`}
     >
       {/* ============================================
           TOP BAR (desktop only)
@@ -305,29 +304,30 @@ export default function Header() {
         <div className="flex items-center justify-between gap-3">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
-  {/* Logo image */}
-  <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shadow-md group-hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-primary to-accent-2">
-    {/* Fallback: gradient with M if logo fails to load */}
-    <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg md:text-xl">
-      M
-    </span>
-    {/* Logo image (layered on top) */}
-    <img
-      src="/logo.png"
-      alt="Mercado Nacer"
-      className="relative z-10 w-full h-full object-contain"
-    />
-  </div>
-
-  <div className="hidden sm:block">
-    <span className="text-lg md:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">
-      Mercado<span className="text-accent">Nacer</span>
-    </span>
-    <span className="text-[10px] md:text-xs block text-text-secondary leading-tight">
-      Votre supermarché en ligne
-    </span>
-  </div>
-</Link>
+            <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+              {/* Fallback letter shown behind image */}
+              <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg md:text-xl">
+                M
+              </span>
+              {/* Image sits on top — if it fails, fallback shows */}
+              <img
+                src="/logo.png"
+                alt="Mercado Nacer"
+                className="relative z-10 w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+            <div className="hidden sm:block">
+              <span className="text-lg md:text-2xl font-bold text-primary group-hover:text-primary/80 transition-colors">
+                Mercado<span className="text-accent">Nacer</span>
+              </span>
+              <span className="text-[10px] md:text-xs block text-text-secondary leading-tight">
+                Votre supermarché en ligne
+              </span>
+            </div>
+          </Link>
 
           {/* Search */}
           <div className="hidden md:flex flex-1 max-w-xl mx-2">
@@ -490,11 +490,10 @@ export default function Header() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                      active
-                        ? 'bg-primary text-white hover:bg-primary/90'
-                        : 'text-text-secondary hover:text-primary hover:bg-primary/10'
-                    }`}
+                    className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${active
+                      ? 'bg-primary text-white hover:bg-primary/90'
+                      : 'text-text-secondary hover:text-primary hover:bg-primary/10'
+                      }`}
                   >
                     <Icon size={14} />
                     {link.label}
@@ -541,11 +540,10 @@ export default function Header() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
-                          active
-                            ? 'bg-primary text-white'
-                            : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                        }`}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${active
+                          ? 'bg-primary text-white'
+                          : 'bg-muted hover:bg-primary/10 hover:text-primary'
+                          }`}
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <Icon size={18} />
@@ -565,11 +563,10 @@ export default function Header() {
                       <Link
                         key={cat.id}
                         href={`/categories/${cat.slug}`}
-                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${
-                          isActive(`/categories/${cat.slug}`)
-                            ? 'bg-primary text-white'
-                            : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                        }`}
+                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${isActive(`/categories/${cat.slug}`)
+                          ? 'bg-primary text-white'
+                          : 'bg-muted hover:bg-primary/10 hover:text-primary'
+                          }`}
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {cat.name}

@@ -21,7 +21,7 @@ export function isCommerceMode(): boolean {
  * WhatsApp contact phone for showcase mode
  * ⚠️ CHANGE THIS to your actual business number
  */
-export const VITRINE_WHATSAPP = '+212654063922'
+export const VITRINE_WHATSAPP = '+212615797765'
 
 /**
  * Base URL for the site (used to build product links in WhatsApp)

@@ -154,27 +154,19 @@ useEffect(() => {
         
         const data = await response.json()
         
-        if (data.products) {
+      if (data.products) {
   const totalCount = data.count || 0
   const totalPagesCount = Math.max(1, Math.ceil(totalCount / pagination.limit))
   
-  // Clamp current page to valid range
-  let safePage = pagination.page
-  if (safePage > totalPagesCount - 1) {
-    safePage = totalPagesCount - 1
-  }
-  if (safePage < 0) {
-    safePage = 0
-  }
-  
-  // If page was clamped, update state (triggers refetch)
-  if (safePage !== pagination.page) {
-    setPagination(prev => ({ ...prev, page: safePage, total: totalCount }))
-    return // Let the effect re-run with the corrected page
+  // If page is out of range AND we got no results, reset to 0
+  if (pagination.page > totalPagesCount - 1 && totalCount > 0) {
+    setPagination(prev => ({ ...prev, page: Math.max(0, totalPagesCount - 1), total: totalCount }))
+    return
   }
   
   setProducts(data.products)
   setPagination(prev => ({ ...prev, total: totalCount }))
+
 } else {
           setProducts([])
           setPagination(prev => ({ ...prev, total: 0 }))
@@ -286,7 +278,11 @@ useEffect(() => {
               type="text"
               placeholder="Rechercher un produit..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+               onChange={(e) => {
+    setSearch(e.target.value)
+    setPagination(prev => ({ ...prev, page: 0 }))  // ← reset page
+  }}
+              
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -330,7 +326,10 @@ useEffect(() => {
               <label className="text-sm font-medium block mb-1">Catégorie</label>
               <select
                 value={filters.category}
-                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                 onChange={(e) => {
+    setFilters({ ...filters, category: e.target.value })
+    setPagination(prev => ({ ...prev, page: 0 }))
+  }}
                 className="w-full px-3 py-2 rounded-lg border border-border"
               >
                 <option value="">Toutes</option>

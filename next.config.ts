@@ -211,16 +211,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
 
-      // ============================================
-      // ANY OTHER HTTPS DOMAIN (Wildcard - Use Carefully)
-      // ============================================
-      // Uncomment this ONLY if you need to allow any domain
-      // {
-      //   protocol: 'https',
-      //   hostname: '**',
-      //   port: '',
-      //   pathname: '/**',
-      // },
+     
     ],
 
     // Image optimization settings

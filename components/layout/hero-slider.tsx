@@ -93,16 +93,19 @@ export default function HeroSlider({ slides: propSlides }: HeroSliderProps) {
             : 'opacity-0 scale-105 z-0'
             }`}
         >
-         {/* Background Image */}
+        
+{/* Background Image */}
 <Image
   src={slide.image_url}
   alt={slide.alt_text || slide.title}
   fill
   priority={index === 0}
+  unoptimized
   className="object-cover"
   sizes="100vw"
   quality={85}
 />
+
 
 {/* ✅ Lighter overlay — only bottom half for text */}
 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10" />

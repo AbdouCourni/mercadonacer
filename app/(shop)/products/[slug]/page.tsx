@@ -18,9 +18,9 @@ import type { Metadata } from 'next'
 
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {

@@ -27,12 +27,8 @@ export const VITRINE_WHATSAPP = '+212615566390'
  * Base URL for the site (used to build product links in WhatsApp)
  */
 function getSiteUrl(): string {
-  // Client-side
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-  // Server-side fallback
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://nacermarket.com'
+ const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nacermarket.com'
+  return siteUrl.replace(/\/$/, '') // Remove trailing slash if present
 }
 
 export function buildWhatsAppUrl(message: string): string {

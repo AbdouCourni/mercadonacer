@@ -28,6 +28,10 @@ import { getUser, signOut } from '@/services/auth.service'
 import { getGuestCartCount } from '@/services/cart.client.service'
 import { createClient } from '@/lib/supabase/client'
 import { isVitrineMode } from '@/lib/site-mode'
+import {
+  getGuestWishlistCount,
+  onGuestWishlistChange,
+} from '@/lib/wishlist-client'
 
 interface Category {
   id: string
@@ -47,19 +51,19 @@ export default function Header() {
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [cartCount, setCartCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [userRole, setUserRole] = useState('')
 
   // ============================================
-  // FETCH CATEGORIES (ordered by importance)
+  // FETCH CATEGORIES
   // ============================================
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const supabase = createClient()
 
-        // Fetch categories with product counts, ordered by display_order
         const { data, error } = await supabase
           .from('categories')
           .select(`
@@ -74,7 +78,6 @@ export default function Header() {
 
         if (error) throw error
 
-        // Filter: only categories with at least 1 active product, or high priority
         const filtered = (data || [])
           .filter((cat: any) => {
             const count = cat.products?.[0]?.count || 0
@@ -113,7 +116,6 @@ export default function Header() {
         return
       }
 
-      // Fallback
       const supabase = createClient()
       const { data: userRoleData } = await supabase
         .from('user_roles')
@@ -152,7 +154,11 @@ export default function Header() {
         const response = await fetch('/api/cart')
         if (response.ok) {
           const data = await response.json()
-          count = data.items?.reduce((acc: number, item: any) => acc + item.quantity, 0) || 0
+          count =
+            data.items?.reduce(
+              (acc: number, item: any) => acc + item.quantity,
+              0
+            ) || 0
         }
       } else {
         count = getGuestCartCount()
@@ -165,7 +171,39 @@ export default function Header() {
   }
 
   // ============================================
-  // AUTH CHECK
+  // WISHLIST COUNT
+  //   - Vitrine mode: from localStorage (guest)
+  //   - Commerce mode: from /api/wishlist (logged)
+  // ============================================
+  const fetchWishlistCount = async () => {
+    // Vitrine mode → guest wishlist
+    if (isVitrineMode()) {
+      setWishlistCount(getGuestWishlistCount())
+      return
+    }
+
+    // Commerce mode → server wishlist
+    try {
+      const user = await getUser()
+      if (!user) {
+        setWishlistCount(0)
+        return
+      }
+      const response = await fetch('/api/wishlist')
+      if (response.ok) {
+        const data = await response.json()
+        setWishlistCount(data.items?.length || 0)
+      } else {
+        setWishlistCount(0)
+      }
+    } catch (error) {
+      console.error('Error fetching wishlist count:', error)
+      setWishlistCount(0)
+    }
+  }
+
+  // ============================================
+  // AUTH CHECK + INITIAL COUNTS
   // ============================================
   useEffect(() => {
     const checkAuth = async () => {
@@ -173,7 +211,11 @@ export default function Header() {
         const user = await getUser()
         setIsLoggedIn(!!user)
         if (user) {
-          setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur')
+          setUserName(
+            user.user_metadata?.full_name ||
+              user.email?.split('@')[0] ||
+              'Utilisateur'
+          )
           setUserEmail(user.email || '')
           await fetchUserRole()
         }
@@ -185,10 +227,34 @@ export default function Header() {
 
     checkAuth()
     fetchCartCount()
+    fetchWishlistCount()
 
+    // React to cart events
     const handleCartUpdate = () => fetchCartCount()
+
+    // React to guest wishlist events (vitrine)
+    const handleWishlistUpdate = () => {
+      if (isVitrineMode()) {
+        setWishlistCount(getGuestWishlistCount())
+      }
+    }
+
+    // React to server wishlist events (commerce)
+    const handleServerWishlistUpdate = () => {
+      if (!isVitrineMode()) fetchWishlistCount()
+    }
+
     window.addEventListener('cartUpdated', handleCartUpdate)
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
+    window.addEventListener('wishlistUpdated', handleServerWishlistUpdate)
+
+    // Cross-tab / same-tab updates for guest wishlist
+    const unsubscribeGuest = onGuestWishlistChange(handleWishlistUpdate)
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate)
+      window.removeEventListener('wishlistUpdated', handleServerWishlistUpdate)
+      unsubscribeGuest()
+    }
   }, [])
 
   // ============================================
@@ -233,7 +299,7 @@ export default function Header() {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2)
@@ -254,7 +320,7 @@ export default function Header() {
   }
 
   // ============================================
-  // TOP NAV LINKS (modern e-commerce standard)
+  // NAV LINKS
   // ============================================
   const navLinks = [
     { href: '/', label: 'Accueil', icon: Home },
@@ -267,10 +333,11 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-border/50'
-        : 'bg-white border-b border-border/30'
-        }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-border/50'
+          : 'bg-white border-b border-border/30'
+      }`}
     >
       {/* ============================================
           TOP BAR (desktop only)
@@ -278,15 +345,24 @@ export default function Header() {
       <div className="hidden lg:block bg-gradient-to-r from-primary to-primary/90 text-white text-xs py-1.5">
         <div className="container-custom flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Link href="/about" className="hover:underline hover:opacity-80 transition-opacity">
+            <Link
+              href="/about"
+              className="hover:underline hover:opacity-80 transition-opacity"
+            >
               À propos
             </Link>
             <span className="w-px h-4 bg-white/30" />
-            <Link href="/contact" className="hover:underline hover:opacity-80 transition-opacity">
+            <Link
+              href="/contact"
+              className="hover:underline hover:opacity-80 transition-opacity"
+            >
               Contact
             </Link>
             <span className="w-px h-4 bg-white/30" />
-            <Link href="/delivery" className="hover:underline hover:opacity-80 transition-opacity">
+            <Link
+              href="/delivery"
+              className="hover:underline hover:opacity-80 transition-opacity"
+            >
               Livraison 24-48h
             </Link>
           </div>
@@ -305,11 +381,9 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
             <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-              {/* Fallback letter shown behind image */}
               <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg md:text-xl">
                 M
               </span>
-              {/* Image sits on top — if it fails, fallback shows */}
               <img
                 src="/logo.png"
                 alt="Mercado Nacer"
@@ -358,18 +432,30 @@ export default function Header() {
               <Search size={20} className="text-text-secondary" />
             </button>
 
-            {/* Wishlist — hidden in vitrine mode */}
-            {!isVitrineMode() && (
-              <Link href="/wishlist">
-                <button className="hidden sm:block p-2 hover:bg-muted rounded-full transition-colors">
-                  <Heart size={20} className="text-text-secondary hover:text-primary transition-colors" />
-                </button>
-              </Link>
-            )}
+            {/* ============================================
+                WISHLIST — now visible in BOTH modes
+                Vitrine: guest wishlist count from localStorage
+                Commerce: server wishlist count
+                ============================================ */}
+            <Link
+              href="/wishlist"
+              className="relative inline-flex items-center p-2 hover:bg-muted rounded-full transition-colors"
+              aria-label="Ma liste d'envies"
+            >
+              <Heart
+                size={20}
+                className="text-text-secondary hover:text-primary transition-colors"
+              />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md px-1.5 z-10">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
+            </Link>
 
             {/* Auth / User — hidden in vitrine mode */}
-            {!isVitrineMode() && (
-              isLoggedIn ? (
+            {!isVitrineMode() &&
+              (isLoggedIn ? (
                 <div className="relative group">
                   <button className="p-1.5 hover:bg-muted rounded-full transition-colors flex items-center gap-1.5">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent-2 flex items-center justify-center text-white text-sm font-bold">
@@ -378,38 +464,62 @@ export default function Header() {
                     <span className="text-sm hidden lg:inline text-text-primary max-w-[80px] truncate">
                       {userName}
                     </span>
-                    <ChevronDown size={14} className="text-text-secondary hidden lg:block" />
+                    <ChevronDown
+                      size={14}
+                      className="text-text-secondary hidden lg:block"
+                    />
                   </button>
 
                   <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 py-1">
                     <div className="px-4 py-2 border-b border-border">
-                      <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
-                      <p className="text-xs text-text-secondary truncate">{userEmail}</p>
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {userName}
+                      </p>
+                      <p className="text-xs text-text-secondary truncate">
+                        {userEmail}
+                      </p>
                     </div>
 
-                    {['superadmin', 'admin', 'manager', 'employee'].includes(userRole) && (
-                      <Link href="/admin" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary">
+                    {['superadmin', 'admin', 'manager', 'employee'].includes(
+                      userRole
+                    ) && (
+                      <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary"
+                      >
                         <LayoutDashboard size={16} />
                         Tableau de bord
                       </Link>
                     )}
 
                     {userRole === 'driver' && (
-                      <Link href="/admin/driver/orders" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary">
+                      <Link
+                        href="/admin/driver/orders"
+                        className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm font-medium text-primary"
+                      >
                         <Truck size={16} />
                         Mes livraisons
                       </Link>
                     )}
 
-                    <Link href="/account" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm"
+                    >
                       <UserCircle size={16} />
                       Mon compte
                     </Link>
-                    <Link href="/account/orders" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <Link
+                      href="/account/orders"
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm"
+                    >
                       <Package size={16} />
                       Mes commandes
                     </Link>
-                    <Link href="/wishlist" className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm">
+                    <Link
+                      href="/wishlist"
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-muted transition-colors text-sm"
+                    >
                       <HeartIcon size={16} />
                       Ma liste d'envies
                     </Link>
@@ -425,16 +535,24 @@ export default function Header() {
               ) : (
                 <Link href="/login">
                   <button className="p-2 hover:bg-muted rounded-full transition-colors">
-                    <User size={20} className="text-text-secondary hover:text-primary transition-colors" />
+                    <User
+                      size={20}
+                      className="text-text-secondary hover:text-primary transition-colors"
+                    />
                   </button>
                 </Link>
-              )
-            )}
+              ))}
 
             {/* Cart — hidden in vitrine mode */}
             {!isVitrineMode() && (
-              <Link href="/cart" className="relative inline-flex items-center p-2 hover:bg-muted rounded-full transition-colors">
-                <ShoppingCart size={20} className="text-text-secondary hover:text-primary transition-colors" />
+              <Link
+                href="/cart"
+                className="relative inline-flex items-center p-2 hover:bg-muted rounded-full transition-colors"
+              >
+                <ShoppingCart
+                  size={20}
+                  className="text-text-secondary hover:text-primary transition-colors"
+                />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md px-1.5 z-10">
                     {cartCount > 99 ? '99+' : cartCount}
@@ -478,7 +596,7 @@ export default function Header() {
       </div>
 
       {/* ============================================
-          DESKTOP NAV — modern simplified links
+          DESKTOP NAV
           ============================================ */}
       <nav className="hidden lg:block border-t border-border/50 bg-muted/20">
         <div className="container-custom">
@@ -490,10 +608,11 @@ export default function Header() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${active
-                      ? 'bg-primary text-white hover:bg-primary/90'
-                      : 'text-text-secondary hover:text-primary hover:bg-primary/10'
-                      }`}
+                    className={`px-4 py-1.5 rounded-full font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                      active
+                        ? 'bg-primary text-white hover:bg-primary/90'
+                        : 'text-text-secondary hover:text-primary hover:bg-primary/10'
+                    }`}
                   >
                     <Icon size={14} />
                     {link.label}
@@ -531,7 +650,9 @@ export default function Header() {
 
               {/* Main nav links */}
               <div>
-                <h3 className="font-bold text-text-primary mb-3 text-lg">Navigation</h3>
+                <h3 className="font-bold text-text-primary mb-3 text-lg">
+                  Navigation
+                </h3>
                 <div className="space-y-1">
                   {navLinks.map((link) => {
                     const Icon = link.icon
@@ -540,10 +661,11 @@ export default function Header() {
                       <Link
                         key={link.href}
                         href={link.href}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${active
-                          ? 'bg-primary text-white'
-                          : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                          }`}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                          active
+                            ? 'bg-primary text-white'
+                            : 'bg-muted hover:bg-primary/10 hover:text-primary'
+                        }`}
                         onClick={() => setIsMenuOpen(false)}
                       >
                         <Icon size={18} />
@@ -551,22 +673,44 @@ export default function Header() {
                       </Link>
                     )
                   })}
+
+                  {/* Wishlist link in mobile menu — visible in BOTH modes */}
+                  <Link
+                    href="/wishlist"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors ${
+                      isActive('/wishlist')
+                        ? 'bg-primary text-white'
+                        : 'bg-muted hover:bg-primary/10 hover:text-primary'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <HeartIcon size={18} />
+                    Ma liste d'envies
+                    {wishlistCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                        {wishlistCount > 99 ? '99+' : wishlistCount}
+                      </span>
+                    )}
+                  </Link>
                 </div>
               </div>
 
               {/* Categories */}
               {categories.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-text-primary mb-3 text-lg">Catégories populaires</h3>
+                  <h3 className="font-bold text-text-primary mb-3 text-lg">
+                    Catégories populaires
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {categories.slice(0, 8).map((cat) => (
                       <Link
                         key={cat.id}
                         href={`/categories/${cat.slug}`}
-                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${isActive(`/categories/${cat.slug}`)
-                          ? 'bg-primary text-white'
-                          : 'bg-muted hover:bg-primary/10 hover:text-primary'
-                          }`}
+                        className={`px-4 py-3 rounded-xl text-sm transition-colors ${
+                          isActive(`/categories/${cat.slug}`)
+                            ? 'bg-primary text-white'
+                            : 'bg-muted hover:bg-primary/10 hover:text-primary'
+                        }`}
                         onClick={() => setIsMenuOpen(false)}
                       >
                         {cat.name}
@@ -579,7 +723,9 @@ export default function Header() {
               {/* Account links (commerce mode only) */}
               {!isVitrineMode() && isLoggedIn && (
                 <div className="border-t border-border pt-4 space-y-3">
-                  {['superadmin', 'admin', 'manager', 'employee'].includes(userRole) && (
+                  {['superadmin', 'admin', 'manager', 'employee'].includes(
+                    userRole
+                  ) && (
                     <Link
                       href="/admin"
                       className="flex items-center gap-2 py-2 text-primary font-medium hover:text-primary/80 transition-colors"
@@ -616,14 +762,6 @@ export default function Header() {
                   >
                     <Package size={18} />
                     Mes commandes
-                  </Link>
-                  <Link
-                    href="/wishlist"
-                    className="flex items-center gap-2 py-2 text-text-secondary hover:text-primary transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <HeartIcon size={18} />
-                    Ma liste d'envies
                   </Link>
                   <button
                     onClick={() => {

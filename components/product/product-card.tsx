@@ -4,7 +4,14 @@
 
 'use client'
 
-import { useState } from 'react'
+// Add to imports at top:
+import {
+  getGuestWishlist,
+  toggleGuestWishlist,
+  onGuestWishlistChange,
+  isInGuestWishlist,
+} from '@/lib/wishlist-client'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -75,6 +82,20 @@ export default function ProductCard({
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+
+  // After the useState declarations:
+useEffect(() => {
+  if (!isVitrineMode()) return
+
+  // Initial sync
+  setIsWishlisted(isInGuestWishlist(id))
+
+  // Listen for changes from other cards / pages / tabs
+  const unsubscribe = onGuestWishlistChange(() => {
+    setIsWishlisted(isInGuestWishlist(id))
+  })
+  return unsubscribe
+}, [id])
 
   // ============================================
   // NORMALIZE
@@ -166,44 +187,55 @@ export default function ProductCard({
   }
 
   const handleWishlist = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  e.preventDefault()
+  e.stopPropagation()
 
-    try {
-      const user = await getUser()
-
-      if (!user) {
-        window.location.href = '/login?redirect=/products'
-        return
-      }
-
-      setIsWishlisted(!isWishlisted)
-
-      if (!isWishlisted) {
-        const response = await fetch('/api/wishlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId: id }),
-        })
-
-        if (!response.ok) {
-          setIsWishlisted(false)
-          throw new Error('Failed to add to wishlist')
-        }
-      } else {
-        const response = await fetch(`/api/wishlist?productId=${id}`, {
-          method: 'DELETE',
-        })
-
-        if (!response.ok) {
-          setIsWishlisted(true)
-          throw new Error('Failed to remove from wishlist')
-        }
-      }
-    } catch (error) {
-      console.error('Wishlist error:', error)
-    }
+  // ---- VITRINE MODE: guest wishlist in localStorage ----
+  if (isVitrineMode()) {
+    const added = toggleGuestWishlist({
+      productId: id,
+      name,
+      slug,
+      price: effectivePrice,
+      image: image || '/images/placeholder.jpg',
+    })
+    setIsWishlisted(added)
+    return
   }
+
+  // ---- COMMERCE MODE: server wishlist (requires login) ----
+  try {
+    const user = await getUser()
+    if (!user) {
+      window.location.href = `/login?redirect=/products/${slug}`
+      return
+    }
+
+    setIsWishlisted(!isWishlisted)
+
+    if (!isWishlisted) {
+      const response = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: id }),
+      })
+      if (!response.ok) {
+        setIsWishlisted(false)
+        throw new Error('Failed to add to wishlist')
+      }
+    } else {
+      const response = await fetch(`/api/wishlist?productId=${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        setIsWishlisted(true)
+        throw new Error('Failed to remove from wishlist')
+      }
+    }
+  } catch (error) {
+    console.error('Wishlist error:', error)
+  }
+}
 
   // ============================================
   // RENDER
@@ -293,7 +325,7 @@ export default function ProductCard({
         {/* ============================================
             WISHLIST (top-right) — hidden in vitrine
             ============================================ */}
-        {!isVitrineMode() && (
+       
           <button
             onClick={handleWishlist}
             className="absolute top-3 right-3 p-2 bg-white/95 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors z-10 active:scale-95"
@@ -310,7 +342,7 @@ export default function ProductCard({
               )}
             />
           </button>
-        )}
+        
       </Link>
 
       {/* ============================================

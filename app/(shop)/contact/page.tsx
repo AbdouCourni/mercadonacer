@@ -39,7 +39,7 @@ export default function ContactPage() {
             </div>
             <h3 className="font-semibold text-text-primary">Téléphone</h3>
             <p className="text-sm text-text-secondary">+212 615 566 390</p>
-            <p className="text-xs text-text-secondary">Lun-Ven 9h-18h</p>
+            <p className="text-xs text-text-secondary">7j/7j 8h-22h</p>
           </div>
 
           <div className="p-6 bg-white rounded-2xl shadow-sm border border-border/50 text-center">
@@ -47,7 +47,7 @@ export default function ContactPage() {
               <Mail size={24} className="text-secondary" />
             </div>
             <h3 className="font-semibold text-text-primary">Email</h3>
-            <p className="text-sm text-text-secondary">contact@magasin.ma</p>
+            <p className="text-sm text-text-secondary">support@nacermarket.com</p>
             <p className="text-xs text-text-secondary">Réponse sous 24h</p>
           </div>
 
@@ -56,8 +56,8 @@ export default function ContactPage() {
               <MapPin size={24} className="text-accent" />
             </div>
             <h3 className="font-semibold text-text-primary">Adresse</h3>
-            <p className="text-sm text-text-secondary">Casablanca, Maroc</p>
-            <p className="text-xs text-text-secondary">Voir sur Google Maps</p>
+            <p className="text-sm text-text-secondary">Av taouima en face supermarche,Nador, Maroc</p>
+            
           </div>
 
           <div className="p-6 bg-white rounded-2xl shadow-sm border border-border/50 text-center">
@@ -65,8 +65,8 @@ export default function ContactPage() {
               <Clock size={24} className="text-accent-2" />
             </div>
             <h3 className="font-semibold text-text-primary">Horaires</h3>
-            <p className="text-sm text-text-secondary">Lun-Ven: 9h-21h</p>
-            <p className="text-xs text-text-secondary">Sam-Dim: 10h-18h</p>
+            <p className="text-sm text-text-secondary">Sam-Jeu: 8h-22h</p>
+            <p className="text-xs text-text-secondary">Ven: 8h-12h -- 13:30h - 22h</p>
           </div>
         </div>
 

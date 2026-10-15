@@ -16,7 +16,7 @@ interface WhatsAppLinkProps {
 export function WhatsAppLink({ phone, order, label, className }: WhatsAppLinkProps) {
   if (!phone) return null
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://nacermarket.com'
   const sharedLink = `${baseUrl}/order/${order.id}`
 
   const message = `🛒 *Commande #${order.order_number}*

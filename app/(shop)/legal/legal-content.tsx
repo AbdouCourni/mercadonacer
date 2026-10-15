@@ -29,7 +29,7 @@ export default function LegalContent() {
           <li><strong>{ar ? 'المعرف الجبائي:' : 'ICE :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'الرقم الجبائي:' : 'IF :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'العنوان:' : 'Adresse :'}</strong> {ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</li>
-          <li><strong>{ar ? 'الهاتف:' : 'Téléphone :'}</strong> <a href="tel:+212615797765" className="text-primary hover:underline">+212 6XX XXX XXX</a></li>
+          <li><strong>{ar ? 'الهاتف:' : 'Téléphone :'}</strong> <a href="tel:+212615566390" className="text-primary hover:underline">+212 615 566 390</a></li>
           <li><strong>{ar ? 'البريد الإلكتروني:' : 'Email :'}</strong> <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
         </ul>
 
@@ -53,9 +53,9 @@ export default function LegalContent() {
           {ar ? 'الاستضافة' : 'Hébergement'}
         </h2>
         <ul className="space-y-2">
-          <li><strong>{ar ? 'المستضيف:' : 'Hébergeur :'}</strong> Vercel Inc.</li>
+          <li><strong>{ar ? 'المستضيف:' : 'Hébergeur :'}</strong> Cloudflare</li>
           <li><strong>{ar ? 'العنوان:' : 'Adresse :'}</strong> 340 S Lemon Ave #4133, Walnut, CA 91789, USA</li>
-          <li><strong>{ar ? 'الموقع:' : 'Site :'}</strong> <a href="https://vercel.com" target="_blank" className="text-primary hover:underline">vercel.com</a></li>
+          <li><strong>{ar ? 'الموقع:' : 'Site :'}</strong> <a href="https://cloudflare.com" target="_blank" className="text-primary hover:underline">cloudflare.com</a></li>
         </ul>
 
         <h2 className="text-xl font-bold text-text-primary pt-4">

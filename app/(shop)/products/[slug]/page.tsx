@@ -97,13 +97,7 @@ function ProductJsonLd({ product }: { product: any }) {
   )
 }
 
-// Generate static paths for all products (ISR)
-// export async function generateStaticParams() {
-//   const { products } = await getProducts({ limit: 100 })
-//   return products.map((product) => ({
-//     slug: product.slug,
-//   }))
-// }
+
 
 export default async function ProductPage({ params }: ProductPageProps) {
   // Wait for params to be available

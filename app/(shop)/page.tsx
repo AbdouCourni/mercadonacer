@@ -1,6 +1,6 @@
 // File: app/(shop)/page.tsx
 // Path: /app/(shop)/page.tsx
-// Description: Homepage with hero, promos, categories, and new products
+// Description: Homepage with hero, promos, categories, featured, and new products
 
 import HeroSlider from '@/components/layout/hero-slider'
 import CategoryCard from '@/components/category/category-card'
@@ -10,18 +10,27 @@ import Link from 'next/link'
 import { getProducts } from '@/services/products.service'
 import { createClient } from '@/lib/supabase/server'
 import { isVitrineMode, VITRINE_WHATSAPP } from '@/lib/site-mode'
-import { Tag, MessageCircle } from 'lucide-react'
+import { Tag, MessageCircle, Sparkles, Package } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   const supabase = await createClient()
 
-  // Fetch in parallel:
-  // 1. New products (latest 8)
-  // 2. Promo products (up to 8)
-  // 3. Top categories (by display_order, with count)
-  const [newProductsResult, promoProductsResult, categoriesResult,heroSlidesResult] = await Promise.all([
+  const [
+    featuredProductsResult,
+    newProductsResult,
+    promoProductsResult,
+    categoriesResult,
+    heroSlidesResult,
+  ] = await Promise.all([
+    // Featured products
+    getProducts({
+      limit: 8,
+      is_featured: true,
+      sort: { by: 'created_at', asc: false },
+    }),
+
     // New products
     getProducts({
       limit: 8,
@@ -46,24 +55,26 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(8),
 
-    // Categories (important first)
- supabase
-  .from('categories')
-  .select(`
-    *,
-    products:products (count)
-  `)
-  .eq('display_in_home', true)
-  .order('display_order', { ascending: true, nullsFirst: false })
-  .order('name', { ascending: true }),
+    // Categories
+    supabase
+      .from('categories')
+      .select(`
+        *,
+        products:products (count)
+      `)
+      .eq('display_in_home', true)
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('name', { ascending: true }),
 
-  supabase
-    .from('hero_slides')
-    .select('id, title, subtitle, description, cta, link, image_url, icon, alt_text')
-    .eq('is_active', true)
-    .order('display_order', { ascending: true }),
+    // Hero slides
+    supabase
+      .from('hero_slides')
+      .select('id, title, subtitle, description, cta, link, image_url, icon, alt_text')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true }),
   ])
 
+  const featuredProducts = featuredProductsResult.products || []
   const newProducts = newProductsResult.products || []
   const promoProducts = promoProductsResult.data || []
   const categories = categoriesResult.data || []
@@ -77,11 +88,11 @@ export default async function HomePage() {
           HERO
           ============================================ */}
       <section className="container-custom pt-8">
-  <HeroSlider slides={heroSlides} />
+        <HeroSlider slides={heroSlides} />
       </section>
 
       {/* ============================================
-          PROMOTIONS (only if any)
+          PROMOTIONS
           ============================================ */}
       {promoProducts.length > 0 && (
         <section className="container-custom">
@@ -99,7 +110,7 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
-            <Link href="/promotions">
+            <Link href="/products?promo=true">
               <Button
                 variant="outline"
                 className="hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
@@ -130,6 +141,19 @@ export default async function HomePage() {
                 promotionEnd={product.promotion_end}
               />
             ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products?promo=true">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+              >
+                Voir toutes les promotions
+              </Button>
+            </Link>
           </div>
         </section>
       )}
@@ -175,58 +199,144 @@ export default async function HomePage() {
       </section>
 
       {/* ============================================
+          FEATURED PRODUCTS
+          ============================================ */}
+      {featuredProducts.length > 0 && (
+        <section className="container-custom">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <Sparkles size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
+                  Produits en <span className="text-gradient">vedette</span>
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Notre sélection coup de cœur
+                </p>
+              </div>
+            </div>
+            <Link href="/products?featured=true">
+              <Button
+                variant="outline"
+                className="hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-colors"
+              >
+                Voir tout
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {featuredProducts.map((product: any) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                price={product.price}
+                comparePrice={product.compare_price}
+                image={product.images?.[0] || '/images/placeholder.jpg'}
+                barcode={product.barcode}
+                sku={product.sku}
+                rating={product.rating}
+                reviewsCount={product.reviews_count}
+                stock={product.stock}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
+              />
+            ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products?featured=true">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-colors"
+              >
+                Voir tous les produits en vedette
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================
           NEW PRODUCTS
           ============================================ */}
-      <section className="container-custom">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
-              Nouveaux <span className="text-gradient">Produits</span>
-            </h2>
-            <p className="text-sm text-text-secondary">
-              Les dernières arrivées dans notre boutique
-            </p>
+      {newProducts.length > 0 && (
+        <section className="container-custom">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
+                  Nouveaux <span className="text-gradient">Produits</span>
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Les dernières arrivées dans notre boutique
+                </p>
+              </div>
+            </div>
+            <Link href="/products">
+              <Button
+                variant="outline"
+                className="hover:bg-primary hover:text-white transition-colors"
+              >
+                Voir tout
+              </Button>
+            </Link>
           </div>
-          <Link href="/products">
-            <Button
-              variant="outline"
-              className="hover:bg-primary hover:text-white transition-colors"
-            >
-              Voir tout
-            </Button>
-          </Link>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {newProducts.map((product: any) => (
-            <ProductCard
-              key={product.id}
-              id={product.id}
-              name={product.name}
-              slug={product.slug}
-              price={product.price}
-              comparePrice={product.compare_price}
-              image={product.images?.[0] || '/images/placeholder.jpg'}
-              barcode={product.barcode}
-              sku={product.sku}
-              rating={product.rating}
-              reviewsCount={product.reviews_count}
-              stock={product.stock}
-              isInPromotion={product.is_in_promotion}
-              promotionPrice={product.promotion_price}
-              promotionStart={product.promotion_start}
-              promotionEnd={product.promotion_end}
-            />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {newProducts.map((product: any) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                price={product.price}
+                comparePrice={product.compare_price}
+                image={product.images?.[0] || '/images/placeholder.jpg'}
+                barcode={product.barcode}
+                sku={product.sku}
+                rating={product.rating}
+                reviewsCount={product.reviews_count}
+                stock={product.stock}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
+              />
+            ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-primary hover:text-white transition-colors"
+              >
+                Voir tous les produits
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* ============================================
           CTA BANNER (mode-aware)
           ============================================ */}
       <section className="container-custom">
         {vitrine ? (
-          // Vitrine: WhatsApp CTA
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-600 to-green-500 p-8 md:p-12 text-white">
             <div className="relative z-10 max-w-2xl">
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium mb-3">
@@ -237,11 +347,11 @@ export default async function HomePage() {
                 Commandez facilement via WhatsApp
               </h3>
               <p className="text-white/90 mb-6 max-w-lg">
-                Notre boutique en ligne arrive bientôt. En attendant, 
+                Notre boutique en ligne arrive bientôt. En attendant,
                 contactez-nous directement sur WhatsApp pour passer votre commande.
               </p>
               <a
-href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
+                href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -256,7 +366,6 @@ href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
             </div>
           </div>
         ) : (
-          // Commerce: normal promo banner
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-accent-2 p-8 md:p-12 text-white">
             <div className="relative z-10 max-w-2xl">
               <h3 className="text-2xl md:text-4xl font-bold mb-3">

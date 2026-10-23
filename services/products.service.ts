@@ -5,9 +5,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { Product, ProductFilters } from '@/types/product.types'
 
-// Extend the filters type (you can also update types/product.types.ts)
+// Extend the filters type to include admin and featured options
 interface ExtendedFilters extends ProductFilters {
   includeInactive?: boolean
+  is_featured?: boolean
 }
 
 export async function getProducts(filters?: ExtendedFilters) {
@@ -20,7 +21,7 @@ export async function getProducts(filters?: ExtendedFilters) {
         *,
         categories:category_id (*),
         variants:product_variants (*)
-      `)
+      `, { count: 'exact' })
 
     // ✅ Only active products by default
     if (!filters?.includeInactive) {
@@ -50,6 +51,11 @@ export async function getProducts(filters?: ExtendedFilters) {
       query = query.eq('sku', filters.sku)
     }
 
+    // Featured filter
+    if (filters?.is_featured) {
+      query = query.eq('is_featured', true)
+    }
+
     // Search by name, description, barcode, or SKU
     if (filters?.search) {
       query = query.or(
@@ -76,16 +82,15 @@ export async function getProducts(filters?: ExtendedFilters) {
 
     const { data, error, count } = await query
 
-   if (error) {
-  console.error('Supabase query error:', {
-    message: error.message,
-    details: error.details,
-    hint: error.hint,
-    code: error.code,
-  })
-  console.error('Full error:', JSON.stringify(error, null, 2))
-  return { products: [], count: 0 }
-}
+    if (error) {
+      console.error('Supabase query error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      })
+      return { products: [], count: 0 }
+    }
 
     return {
       products: (data || []) as Product[],
@@ -199,16 +204,21 @@ export async function searchProducts(query: string, includeInactive = false) {
   }
 }
 
-// ✅ No changes needed — already filters is_active
-export async function getFeaturedProducts(limit: number = 6) {
+// ✅ Updated to include relations and proper ordering
+export async function getFeaturedProducts(limit: number = 8) {
   try {
     const supabase = await createClient()
 
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        categories:category_id (*),
+        variants:product_variants (*)
+      `)
       .eq('is_featured', true)
       .eq('is_active', true)
+      .order('created_at', { ascending: false })
       .limit(limit)
 
     if (error) {

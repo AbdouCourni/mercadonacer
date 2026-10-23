@@ -184,7 +184,7 @@ export default function DeliveryContent() {
         </h2>
         <ul className="space-y-1">
           <li>📱 <a href="https://wa.me/212615566390" className="text-primary hover:underline">+212 615 566390</a></li>
-          <li>📧 <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
+          <li>📧 <a href="mailto:support@nacermarket.com" className="text-primary hover:underline">support@nacermarket.com</a></li>
         </ul>
       </div>
     </LegalPageLayout>

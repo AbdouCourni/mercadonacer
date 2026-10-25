@@ -114,7 +114,7 @@ export default function AboutContent() {
             <MapPin size={20} className="text-primary flex-shrink-0 mt-1" />
             <div>
               <p className="font-medium text-text-primary">{ar ? 'العنوان' : 'Adresse'}</p>
-              <p className="text-sm">{ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</p>
+              <p className="text-sm">{ar ? 'شارع تاويمة قبالة سوبرمارشي, الناظور، المغرب' : 'Av taouima en face supermarche, Nador, Maroc'}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -130,8 +130,8 @@ export default function AboutContent() {
             <Mail size={20} className="text-primary flex-shrink-0 mt-1" />
             <div>
               <p className="font-medium text-text-primary">Email</p>
-              <a href="mailto:contact@mercadonacer.com" className="text-sm text-primary hover:underline">
-                contact@mercadonacer.com
+              <a href="mailto:support@nacermarket.com" className="text-sm text-primary hover:underline">
+                support@nacermarket.com
               </a>
             </div>
           </div>

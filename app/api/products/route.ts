@@ -36,6 +36,8 @@ export async function GET(request: NextRequest) {
   const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 0
   const includeInactive = searchParams.get('includeInactive') === 'true'
   const promo = searchParams.get('promo') === 'true'
+  const featured = searchParams.get('featured') === 'true'
+
   // 🆕 These are extracted but used below
   const category = searchParams.get('category')
   const search = searchParams.get('search')
@@ -154,6 +156,11 @@ export async function GET(request: NextRequest) {
         .not('promotion_price', 'is', null)
         .or(`promotion_end.is.null,promotion_end.gte.${new Date().toISOString()}`)
     }
+
+    // Featured filter
+if (featured) {
+  query = query.eq('is_featured', true)
+}
 
     // 🆕 Category filter
     if (category) {

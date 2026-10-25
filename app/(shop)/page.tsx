@@ -26,6 +26,13 @@ import { createClient } from '@/lib/supabase/server'
 import { isVitrineMode, VITRINE_WHATSAPP } from '@/lib/site-mode'
 import Image from 'next/image'
 
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      [elementName: string]: any
+    }
+  }
+}
 
 export const dynamic = 'force-dynamic'
 

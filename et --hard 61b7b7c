@@ -1,0 +1,23 @@
+[33m7be62a0[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m features products
+[33m61b7b7c[m retry deploy
+[33m5f5c77a[m show wishlist
+[33m939bf5e[m full screen image
+[33m0b21c24[m change whatsapp number
+[33m6c5894c[m image costimize
+[33md8c19df[m fix: downgrade to Next 15.5.27, fix params Promise types, fix wrangler binding
+[33mffeafd6[m fix: sync package-lock.json
+[33m4c02df5[m[33m ([m[1;31morigin/backup-before-cloudflare[m[33m, [m[1;32mbackup-before-cloudflare[m[33m)[m mercadonacer service
+[33mec8ef5a[m before deploy in cloudflare
+[33m7947c74[m admin search
+[33m65e987e[m some enhacement
+[33m208a7cf[m full image
+[33mb35d0e2[m logo seo
+[33m26ca6ce[m logo seo
+[33m2b7cd6f[m vitrin
+[33m4559b40[m add to cart icon
+[33mce02ad7[m ui enhancement
+[33mf7e3af8[m Fix legal routes
+[33m3970b91[m Fix Next.js 15 build errors: params Promise, Suspense, dynamic rendering
+[33me48e707[m first push
+[33mf1a7520[m pre cart handling
+[33m9480e53[m Initial commit from Create Next App

@@ -1,3 +1,6 @@
+// File: components/category/category-card.tsx
+// Path: /components/category/category-card.tsx
+
 'use client'
 
 import Link from 'next/link'
@@ -13,54 +16,44 @@ interface CategoryCardProps {
 }
 
 export default function CategoryCard({
-  id,
   name,
   slug,
   image,
   productCount,
 }: CategoryCardProps) {
-  const hasImage = image && image.length > 0
-
   return (
-    <Link href={`/categories/${slug}`} className="group block">
-      <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl">
-        {/* Image or fallback */}
-        {hasImage ? (
+    <Link 
+      href={`/categories/${slug}`} 
+      className="group flex flex-col items-center justify-center bg-[#F8F9FA] rounded-2xl p-4 md:p-6 transition-all duration-300 hover:bg-white hover:shadow-lg border border-transparent hover:border-gray-100"
+    >
+      {/* Image */}
+      <div className="relative w-16 h-16 md:w-24 md:h-24 mb-3 md:mb-4">
+        {image ? (
           <Image
-            src={getOptimizedImage(image, { width: 400, height: 400 })}
+            src={getOptimizedImage(image, { width: 200, height: 200 })}
             alt={name}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
+            className="object-contain group-hover:scale-110 transition-transform duration-300"
+            sizes="(max-width: 768px) 64px, 96px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-            <span className="text-5xl">📦</span>
-          </div>
-        )}
-
-        {/* Dark gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-
-        {/* Content */}
-        <div className="absolute inset-0 flex flex-col justify-end p-4 text-white">
-          <h3 className="font-bold text-base md:text-lg leading-tight line-clamp-2 group-hover:text-primary-100 transition-colors">
-            {name}
-          </h3>
-          {productCount !== undefined && (
-            <p className="text-xs md:text-sm text-white/80 mt-1">
-              {productCount} produit{productCount > 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
-
-        {/* Optional badge for count */}
-        {productCount !== undefined && productCount > 0 && (
-          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm text-primary text-xs font-bold px-2.5 py-1 rounded-full shadow-md">
-            {productCount}
+          <div className="w-full h-full flex items-center justify-center text-3xl">
+            📦
           </div>
         )}
       </div>
+
+      {/* Name */}
+      <h3 className="font-medium text-gray-900 text-xs md:text-sm text-center group-hover:text-primary transition-colors leading-tight">
+        {name}
+      </h3>
+
+      {/* Optional: Show product count if you want, but the image hides it for a cleaner look */}
+      {productCount !== undefined && productCount > 0 && (
+        <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+          {productCount} article{productCount > 1 ? 's' : ''}
+        </p>
+      )}
     </Link>
   )
 }

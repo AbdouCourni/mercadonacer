@@ -4,10 +4,10 @@
 :root {
   /* Base */
   --background: #ffffff;
-  --foreground: #2b2b2b;
+  --foreground: #ffffff;
 
   /* Brand Colors */
-  --primary: #e30613;      /* Red from logo */
+  --primary: #1f7a4d;      /* Red from logo */
   --secondary: #2e7d32;    /* Green from logo */
   --accent: #ff7a00;       /* Orange from gradient */
   --accent-2: #c2185b;     /* Pink/Purple from gradient */

@@ -19,11 +19,10 @@ export default function DeliveryContent() {
     >
       <div className="space-y-6 text-text-secondary leading-relaxed">
         <p>
-          {ar
-            ? 'نوصل في جميع أنحاء منطقة الناظور والمناطق المجاورة. اكتشف أدناه جميع المعلومات حول أوقات التوصيل والمناطق والرسوم.'
-            : 'Nous livrons dans toute la région de Nador et ses environs. Découvrez ci-dessous les informations sur nos délais, zones et frais.'}
-        </p>
-
+  {ar
+    ? 'نوصل في مدينة الناظور وجميع أحيائها. اكتشف أدناه جميع المعلومات حول أوقات التوصيل والمناطق والرسوم.'
+    : 'Nous livrons dans la ville de Nador et tous ses quartiers. Découvrez ci-dessous les informations sur nos délais, zones et frais.'}
+</p>
         <h2 className="text-xl font-bold text-text-primary pt-4 flex items-center gap-2">
           <Clock size={20} className="text-primary" />
           {ar ? 'مدة التوصيل' : 'Délai de livraison'}
@@ -56,19 +55,33 @@ export default function DeliveryContent() {
           <MapPin size={20} className="text-primary" />
           {ar ? 'مناطق التوصيل' : 'Zones de livraison'}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {[
-            { fr: 'Nador Centre', ar: 'الناظور المركز' },
-            { fr: 'Al Aroui', ar: 'العروي' },
-            { fr: 'Beni Ensar', ar: 'بني أنصار' },
-            { fr: 'Zeghanghane', ar: 'أزغنغان' },
-          ].map((z) => (
-            <div key={z.fr} className="p-3 bg-muted rounded-lg">
-              <p className="font-medium text-text-primary">{ar ? z.ar : z.fr}</p>
-              <p className="text-sm">{ar ? 'منطقة مغطاة' : 'Zone couverte'}</p>
-            </div>
-          ))}
-        </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+  {[
+    { fr: 'Centre-ville', ar: 'وسط المدينة)' },
+    { fr: 'Quartier Administratif', ar: 'الحي الإداري' },
+    { fr: 'Oulad Mimoun', ar: 'أولاد ميمون' },
+    { fr: 'Al Fid', ar: 'الفيض' },
+    { fr: 'Braqa', ar: 'براقة' },
+    { fr: 'Laari Cheikh', ar: 'لعري الشيخ' },
+    { fr: 'Oulad Boutib', ar: 'أولاد بوطيب' },
+    { fr: 'Isabbanan', ar: 'واصبانن' },
+    { fr: 'Ichoumay', ar: 'إيشوماي' },
+    { fr: 'Thizirin', ar: 'ثيزيرين' },
+    { fr: 'Bouizarzan', ar: 'بويزارزان' },
+    { fr: 'Igonaf', ar: 'إكوناف' },
+    { fr: 'El Matar', ar: 'المطار' },
+    { fr: 'Chaala', ar: 'شعالة' },
+    { fr: 'Arrid', ar: 'عاريض' },
+    { fr: 'Laarasi', ar: 'العراصي' },
+    { fr: 'Bourourou', ar: 'بوعرورو' },
+    { fr: 'Taouima', ar: 'تاويمة' },
+  ].map((z) => (
+              <div key={z.fr} className="p-3 bg-muted rounded-lg">
+                <p className="font-medium text-text-primary">{ar ? z.ar : z.fr}</p>
+                <p className="text-sm">{ar ? 'منطقة مغطاة' : 'Zone couverte'}</p>
+              </div>
+            ))}
+          </div>
         <p className="text-sm mt-3 italic">
           💡 {ar
             ? 'لم تجد منطقتك؟ اتصل بنا للتحقق.'

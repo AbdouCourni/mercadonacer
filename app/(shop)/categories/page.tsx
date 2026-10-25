@@ -1,11 +1,13 @@
 // File: app/(shop)/categories/page.tsx
 // Path: /app/(shop)/categories/page.tsx
-// Description: All categories page
+// Description: All categories page - Gallery Grid
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { FolderOpen } from 'lucide-react'
+import CategoryCard from '@/components/category/category-card'
+
+export const dynamic = 'force-dynamic'
 
 export default async function CategoriesPage() {
   const supabase = await createClient()
@@ -17,88 +19,50 @@ export default async function CategoriesPage() {
       *,
       products:products (count)
     `)
+    .order('display_order', { ascending: true, nullsFirst: false })
     .order('name')
 
   if (error) {
     console.error('Categories error:', error)
   }
 
-  // Group categories by first letter
-  const groupedCategories = (categories || []).reduce((acc: any, cat: any) => {
-    const firstLetter = cat.name.charAt(0).toUpperCase()
-    if (!acc[firstLetter]) acc[firstLetter] = []
-    acc[firstLetter].push(cat)
-    return acc
-  }, {})
-
-  const letters = Object.keys(groupedCategories).sort()
-
   return (
-    <div className="container-custom py-8">
-      <h1 className="text-3xl font-bold text-text-primary mb-2">Toutes les catégories</h1>
-      <p className="text-text-secondary mb-8">
-        Explorez notre large gamme de produits par catégorie
-      </p>
-
-      {/* Alphabetical Index */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {letters.map((letter) => (
-          <a
-            key={letter}
-            href={`#section-${letter}`}
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-border hover:bg-primary hover:text-white hover:border-primary transition-colors text-sm"
-          >
-            {letter}
-          </a>
-        ))}
+    <div className="container-custom py-8 md:py-12">
+      {/* Header */}
+      <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+          Acheter par catégorie
+        </h1>
+        <p className="text-gray-500 text-base">
+          Trouvez rapidement ce que vous cherchez parmi nos différentes catégories.
+        </p>
       </div>
 
-      {/* Categories Grid */}
-      <div className="space-y-10">
-        {letters.map((letter) => (
-          <div key={letter} id={`section-${letter}`}>
-            <h2 className="text-2xl font-bold text-primary border-b border-border pb-3 mb-4">
-              {letter}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {groupedCategories[letter].map((category: any) => {
-                const productCount = category.products?.[0]?.count || 0
-                
-                return (
-                  <Link
-                    key={category.id}
-                    href={`/categories/${category.slug}`}
-                    className="group bg-white rounded-xl border border-border p-4 hover:shadow-md transition-all hover:border-primary/50"
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      {category.image_url ? (
-                        <div className="relative w-16 h-16 rounded-full overflow-hidden bg-muted mb-3">
-                          <Image
-                            src={category.image_url}
-                            alt={category.name}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
-                          <FolderOpen size={28} className="text-primary" />
-                        </div>
-                      )}
-                      <h3 className="font-medium text-text-primary group-hover:text-primary transition-colors text-sm">
-                        {category.name}
-                      </h3>
-                      <p className="text-xs text-text-secondary mt-0.5">
-                        {productCount} produit{productCount > 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Gallery Grid */}
+      {categories && categories.length > 0 ? (
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
+          {categories.map((category: any) => {
+            const productCount = category.products?.[0]?.count || 0
+            
+            return (
+              <CategoryCard
+                key={category.id}
+                id={category.id}
+                name={category.name}
+                slug={category.slug}
+                image={category.image_url}
+                productCount={productCount}
+              />
+            )
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-gray-50 rounded-2xl">
+          <FolderOpen size={48} className="mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900">Aucune catégorie</h3>
+          <p className="text-gray-500">Les catégories apparaîtront ici une fois ajoutées.</p>
+        </div>
+      )}
     </div>
   )
 }

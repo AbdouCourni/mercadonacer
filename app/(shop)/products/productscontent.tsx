@@ -22,13 +22,15 @@ export default function ProductsContent() {
     : 0
 
  const [filters, setFilters] = useState({
-  search: searchParams.get('search') || '',      // 🆕
+  search: searchParams.get('search') || '',
   category: searchParams.get('category') || '',
   minPrice: searchParams.get('minPrice') || '',
   maxPrice: searchParams.get('maxPrice') || '',
+  featured: searchParams.get('featured') === 'true',   // 🆕
+  promo: searchParams.get('promo') === 'true',         // 🆕
   sort: searchParams.get('sort') || 'created_at-desc',
   page: initialPage,
-  limit: 25
+  limit: 25,
 })
 
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([])
@@ -64,6 +66,8 @@ export default function ProductsContent() {
 
         if (filters.minPrice) params.append('minPrice', filters.minPrice)
         if (filters.maxPrice) params.append('maxPrice', filters.maxPrice)
+          if (filters.featured) params.append('featured', 'true')     // 🆕
+if (filters.promo) params.append('promo', 'true')    
         if (filters.sort) params.append('sort', filters.sort)
         params.append('page', String(filters.page))
         params.append('limit', String(filters.limit))
@@ -104,6 +108,8 @@ export default function ProductsContent() {
     if (filters.category) params.set('category', filters.category)
     if (filters.minPrice) params.set('minPrice', filters.minPrice)
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice)
+     if (filters.featured) params.set('featured', 'true')        // 🆕
+if (filters.promo) params.set('promo', 'true')  
     if (filters.sort && filters.sort !== 'created_at-desc') params.set('sort', filters.sort)
     if (filters.page > 0) params.set('page', String(filters.page + 1))
 
@@ -130,17 +136,25 @@ export default function ProductsContent() {
     <div className="container-custom py-8">
       {/* Page Header */}
      <div className="mb-8">
-  <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
-    {filters.search ? (
-      <>
-        Résultats pour <span className="text-gradient">"{filters.search}"</span>
-      </>
-    ) : (
-      <>
-        Tous nos <span className="text-gradient">Produits</span>
-      </>
-    )}
-  </h1>
+ <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
+  {filters.search ? (
+    <>
+      Résultats pour <span className="text-gradient">"{filters.search}"</span>
+    </>
+  ) : filters.featured ? (
+    <>
+      Produits en <span className="text-gradient">vedette</span>
+    </>
+  ) : filters.promo ? (
+    <>
+      <span className="text-gradient">Promotions</span> en cours
+    </>
+  ) : (
+    <>
+      Tous nos <span className="text-gradient">Produits</span>
+    </>
+  )}
+</h1>
   <p className="text-text-secondary mt-2">
     {loading
       ? 'Chargement...'
@@ -163,6 +177,33 @@ export default function ProductsContent() {
         <X size={14} />
       </button>
     </span>
+  </div>
+)}
+{/* 🆕 Filter chips */}
+{(filters.featured || filters.promo) && (
+  <div className="flex items-center gap-2 mb-4 flex-wrap">
+    {filters.featured && (
+      <span className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+        ✨ Produits en vedette
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, featured: false, page: 0 }))}
+          className="hover:bg-purple-200 rounded-full p-0.5"
+        >
+          <X size={14} />
+        </button>
+      </span>
+    )}
+    {filters.promo && (
+      <span className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+        🏷️ En promotion
+        <button
+          onClick={() => setFilters(prev => ({ ...prev, promo: false, page: 0 }))}
+          className="hover:bg-red-200 rounded-full p-0.5"
+        >
+          <X size={14} />
+        </button>
+      </span>
+    )}
   </div>
 )}
 
@@ -188,6 +229,8 @@ export default function ProductsContent() {
                   category: '',
                   minPrice: '',
                   maxPrice: '',
+                   featured: false,        // 🆕
+    promo: false,           // 🆕
                   sort: 'created_at-desc',
                   page: 0,
                   limit: 20

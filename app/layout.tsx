@@ -10,7 +10,7 @@ import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister'
 
 export const metadata: Metadata = {
   // Base
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://nacermarket.com'),
 
   // Title template
   title: {

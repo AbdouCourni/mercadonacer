@@ -1,6 +1,10 @@
 // File: app/(shop)/page.tsx
 // Path: /app/(shop)/page.tsx
+<<<<<<< HEAD
 // Description: Mercado Nacer — redesigned homepage (screenshot-matched)
+=======
+// Description: Homepage with hero, promos, categories, featured, and new products
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
 
 import Link from 'next/link'
 import {
@@ -24,8 +28,12 @@ import { Button } from '@/components/ui/button'
 import { getProducts } from '@/services/products.service'
 import { createClient } from '@/lib/supabase/server'
 import { isVitrineMode, VITRINE_WHATSAPP } from '@/lib/site-mode'
+<<<<<<< HEAD
 import Image from 'next/image'
 
+=======
+import { Tag, MessageCircle, Sparkles, Package } from 'lucide-react'
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
 
 export const dynamic = 'force-dynamic'
 
@@ -34,11 +42,26 @@ export default async function HomePage() {
   const now = new Date().toISOString()
 
   const [
+<<<<<<< HEAD
+=======
+    featuredProductsResult,
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
     newProductsResult,
     promoProductsResult,
     categoriesResult,
     heroSlidesResult,
   ] = await Promise.all([
+<<<<<<< HEAD
+=======
+    // Featured products
+    getProducts({
+      limit: 8,
+      is_featured: true,
+      sort: { by: 'created_at', asc: false },
+    }),
+
+    // New products
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
     getProducts({
       limit: 12,
       sort: { by: 'created_at', asc: false },
@@ -63,6 +86,7 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(8),
 
+<<<<<<< HEAD
     supabase
       .from('categories')
       .select(
@@ -71,10 +95,20 @@ export default async function HomePage() {
         products:products (count)
       `,
       )
+=======
+    // Categories
+    supabase
+      .from('categories')
+      .select(`
+        *,
+        products:products (count)
+      `)
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
       .eq('display_in_home', true)
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true }),
 
+<<<<<<< HEAD
     supabase
       .from('hero_slides')
       .select(
@@ -90,10 +124,17 @@ export default async function HomePage() {
         alt_text
       `,
       )
+=======
+    // Hero slides
+    supabase
+      .from('hero_slides')
+      .select('id, title, subtitle, description, cta, link, image_url, icon, alt_text')
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
       .eq('is_active', true)
       .order('display_order', { ascending: true }),
   ])
 
+  const featuredProducts = featuredProductsResult.products || []
   const newProducts = newProductsResult.products || []
   const promoProducts = promoProductsResult.data || []
   const categories = categoriesResult.data || []
@@ -122,6 +163,7 @@ export default async function HomePage() {
   )
 
   return (
+<<<<<<< HEAD
 <main className="space-y-4 pb-12 md:space-y-6">
       {/* ==================== HERO ==================== */}
       <section className="container-custom pt-4 md:pt-6">
@@ -161,6 +203,25 @@ export default async function HomePage() {
             <div key={title} className="flex items-center gap-3 py-1">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
                 <Icon size={20} />
+=======
+    <div className="space-y-10 md:space-y-14 pb-12">
+      {/* ============================================
+          HERO
+          ============================================ */}
+      <section className="container-custom pt-8">
+        <HeroSlider slides={heroSlides} />
+      </section>
+
+      {/* ============================================
+          PROMOTIONS
+          ============================================ */}
+      {promoProducts.length > 0 && (
+        <section className="container-custom">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Tag size={20} className="text-red-600" />
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-emerald-950 sm:text-sm">{title}</p>
@@ -169,9 +230,233 @@ export default async function HomePage() {
                 </p>
               </div>
             </div>
+<<<<<<< HEAD
           ))}
         </div>
       </section>
+=======
+            <Link href="/products?promo=true">
+              <Button
+                variant="outline"
+                className="hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+              >
+                Voir tout
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {promoProducts.map((product: any) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                price={product.price}
+                comparePrice={product.compare_price}
+                image={product.images?.[0] || '/images/placeholder.jpg'}
+                barcode={product.barcode}
+                sku={product.sku}
+                rating={product.rating}
+                reviewsCount={product.reviews_count}
+                stock={product.stock}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
+              />
+            ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products?promo=true">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+              >
+                Voir toutes les promotions
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================
+          CATEGORIES
+          ============================================ */}
+      <section className="container-custom">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
+              Nos <span className="text-gradient">Catégories</span>
+            </h2>
+            <p className="text-sm text-text-secondary">
+              Explorez notre large gamme de produits
+            </p>
+          </div>
+          <Link href="/categories">
+            <Button
+              variant="outline"
+              className="hover:bg-primary hover:text-white transition-colors"
+            >
+              Voir tout
+            </Button>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {categories.map((category: any) => {
+            const productCount = category.products?.[0]?.count || 0
+            return (
+              <CategoryCard
+                key={category.id}
+                id={category.id}
+                name={category.name}
+                slug={category.slug}
+                image={category.image_url}
+                productCount={productCount}
+              />
+            )
+          })}
+        </div>
+      </section>
+
+      {/* ============================================
+          FEATURED PRODUCTS
+          ============================================ */}
+      {featuredProducts.length > 0 && (
+        <section className="container-custom">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+                <Sparkles size={20} className="text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
+                  Produits en <span className="text-gradient">vedette</span>
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Notre sélection coup de cœur
+                </p>
+              </div>
+            </div>
+            <Link href="/products?featured=true">
+              <Button
+                variant="outline"
+                className="hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-colors"
+              >
+                Voir tout
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {featuredProducts.map((product: any) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                price={product.price}
+                comparePrice={product.compare_price}
+                image={product.images?.[0] || '/images/placeholder.jpg'}
+                barcode={product.barcode}
+                sku={product.sku}
+                rating={product.rating}
+                reviewsCount={product.reviews_count}
+                stock={product.stock}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
+              />
+            ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products?featured=true">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-colors"
+              >
+                Voir tous les produits en vedette
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ============================================
+          NEW PRODUCTS
+          ============================================ */}
+      {newProducts.length > 0 && (
+        <section className="container-custom">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-text-primary">
+                  Nouveaux <span className="text-gradient">Produits</span>
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Les dernières arrivées dans notre boutique
+                </p>
+              </div>
+            </div>
+            <Link href="/products">
+              <Button
+                variant="outline"
+                className="hover:bg-primary hover:text-white transition-colors"
+              >
+                Voir tout
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {newProducts.map((product: any) => (
+              <ProductCard
+                key={product.id}
+                id={product.id}
+                name={product.name}
+                slug={product.slug}
+                price={product.price}
+                comparePrice={product.compare_price}
+                image={product.images?.[0] || '/images/placeholder.jpg'}
+                barcode={product.barcode}
+                sku={product.sku}
+                rating={product.rating}
+                reviewsCount={product.reviews_count}
+                stock={product.stock}
+                isInPromotion={product.is_in_promotion}
+                promotionPrice={product.promotion_price}
+                promotionStart={product.promotion_start}
+                promotionEnd={product.promotion_end}
+              />
+            ))}
+          </div>
+
+          {/* Bottom button */}
+          <div className="flex justify-center mt-6">
+            <Link href="/products">
+              <Button
+                size="lg"
+                variant="outline"
+                className="hover:bg-primary hover:text-white transition-colors"
+              >
+                Voir tous les produits
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
 
       {/* ==================== PROMOTIONS ==================== */}
       {promoProducts.length > 0 && (
@@ -302,6 +587,7 @@ export default async function HomePage() {
       {/* ==================== BOTTOM CTA ==================== */}
       <section className="container-custom">
         {vitrine ? (
+<<<<<<< HEAD
           <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-900 to-green-700 px-6 py-8 text-white md:px-10 md:py-10">
             <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
               <div className="max-w-xl">
@@ -316,6 +602,21 @@ export default async function HomePage() {
                   Contactez-nous sur WhatsApp pour découvrir nos produits et passer votre commande.
                 </p>
               </div>
+=======
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-green-600 to-green-500 p-8 md:p-12 text-white">
+            <div className="relative z-10 max-w-2xl">
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium mb-3">
+                <MessageCircle size={14} />
+                Commande par WhatsApp
+              </div>
+              <h3 className="text-2xl md:text-4xl font-bold mb-3">
+                Commandez facilement via WhatsApp
+              </h3>
+              <p className="text-white/90 mb-6 max-w-lg">
+                Notre boutique en ligne arrive bientôt. En attendant,
+                contactez-nous directement sur WhatsApp pour passer votre commande.
+              </p>
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
               <a
                 href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
                 target="_blank"
@@ -328,6 +629,7 @@ export default async function HomePage() {
             </div>
           </div>
         ) : (
+<<<<<<< HEAD
           <div className="overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-green-50 to-amber-50 px-6 py-8 md:px-10 md:py-10">
             <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
               <div className="max-w-xl">
@@ -347,6 +649,22 @@ export default async function HomePage() {
                 <Button className="rounded-full bg-emerald-800 px-6 py-3 font-bold text-white hover:bg-emerald-900">
                   Commencer mes achats
                   <ArrowRight size={17} className="ml-2" />
+=======
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-accent-2 p-8 md:p-12 text-white">
+            <div className="relative z-10 max-w-2xl">
+              <h3 className="text-2xl md:text-4xl font-bold mb-3">
+                Découvrez nos nouveautés
+              </h3>
+              <p className="text-white/90 mb-6 max-w-lg">
+                Des produits frais et de qualité, livrés directement chez vous.
+              </p>
+              <Link href="/products">
+                <Button
+                  size="lg"
+                  className="bg-white text-foreground hover:bg-white/90 transform hover:scale-105 transition-all duration-300"
+                >
+                  Commander maintenant
+>>>>>>> 7be62a06c630654a268b144ff04ee115c1bde643
                 </Button>
               </Link>
             </div>

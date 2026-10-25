@@ -28,9 +28,9 @@ export default function LegalContent() {
           <li><strong>{ar ? 'السجل التجاري:' : 'RC :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'المعرف الجبائي:' : 'ICE :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
           <li><strong>{ar ? 'الرقم الجبائي:' : 'IF :'}</strong> <span className="text-text-secondary italic">{ar ? 'قيد التسجيل' : 'En cours'}</span></li>
-          <li><strong>{ar ? 'العنوان:' : 'Adresse :'}</strong> {ar ? 'الناظور، المغرب' : 'Nador, Maroc'}</li>
+          <li><strong>{ar ? 'العنوان:' : 'Adresse :'}</strong> {ar ? 'شارع تاويمة قبالة سوبرمارشي, الناظور، المغرب' : 'Av taouima en face supermarche, Nador, Maroc'}</li>
           <li><strong>{ar ? 'الهاتف:' : 'Téléphone :'}</strong> <a href="tel:+212615566390" className="text-primary hover:underline">+212 615 566 390</a></li>
-          <li><strong>{ar ? 'البريد الإلكتروني:' : 'Email :'}</strong> <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
+          <li><strong>{ar ? 'البريد الإلكتروني:' : 'Email :'}</strong> <a href="mailto:support@nacermarket.com" className="text-primary hover:underline">support@nacermarket.com</a></li>
         </ul>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -46,7 +46,7 @@ export default function LegalContent() {
         </h2>
         <ul className="space-y-2">
           <li><strong>{ar ? 'الاسم:' : 'Nom :'}</strong> [Nom du responsable]</li>
-          <li><strong>{ar ? 'الاتصال:' : 'Contact :'}</strong> <a href="mailto:contact@mercadonacer.com" className="text-primary hover:underline">contact@mercadonacer.com</a></li>
+          <li><strong>{ar ? 'الاتصال:' : 'Contact :'}</strong> <a href="mailto:support@nacermarket.com" className="text-primary hover:underline">support@nacermarket.com</a></li>
         </ul>
 
         <h2 className="text-xl font-bold text-text-primary pt-4">

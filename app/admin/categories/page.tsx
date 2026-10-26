@@ -550,7 +550,7 @@ export default function CategoriesPage() {
                   {/* Image */}
                   {category.image_url ? (
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      <Image src={category.image_url} alt={category.name} fill className="object-cover" />
+                      <Image src={category.image_url} alt={category.name} fill unoptimized className="object-cover" />
                     </div>
                   ) : (
                     <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-xl flex-shrink-0">
@@ -606,7 +606,7 @@ export default function CategoriesPage() {
 
               {category.image_url && (
                 <div className="relative h-40 bg-muted">
-                  <Image src={category.image_url} alt={category.name} fill className="object-cover" />
+                  <Image src={category.image_url} alt={category.name} fill unoptimized className="object-cover" />
                 </div>
               )}
 

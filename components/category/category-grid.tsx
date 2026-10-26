@@ -42,9 +42,9 @@ export default function CategoryGrid({
           <Link
             key={category.id}
             href={`/categories/${category.slug}`}
-            className="group flex flex-col items-center overflow-hidden rounded-2xl border border-gray-100 bg-emerald-50/40 p-3 text-center transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md"
-          >
-            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
+className="group flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[#F3FEF9] p-4 text-center transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#e6f7ee] hover:shadow-sm"          >
+            {/* Image Container - No white background, just the image */}
+            <div className="relative aspect-square w-full mb-3">
               {hasImage ? (
                 <Image
                   src={getOptimizedImage(category.image_url!, {
@@ -55,7 +55,7 @@ export default function CategoryGrid({
                   fill
                   unoptimized
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="object-contain p-2"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-3xl">
@@ -63,7 +63,9 @@ export default function CategoryGrid({
                 </div>
               )}
             </div>
-            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-tight text-emerald-950 sm:text-[13px]">
+            
+            {/* Text */}
+            <p className="text-[13px] font-semibold leading-tight text-gray-800">
               {category.name}
             </p>
           </Link>
@@ -73,12 +75,12 @@ export default function CategoryGrid({
       {showAllCard && (
         <Link
           href="/categories"
-          className="group flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-gray-100 bg-emerald-50/40 p-3 text-center transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md"
+          className="group flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-[#f4f8f2] p-4 text-center transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#eef6eb] hover:shadow-sm"
         >
-          <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-white text-emerald-700">
-            <Grid2X2 size={32} />
+          <div className="relative flex aspect-square w-full items-center justify-center mb-3 text-emerald-600">
+            <Grid2X2 size={48} strokeWidth={1.5} />
           </div>
-          <p className="mt-2 text-xs font-semibold text-emerald-950 sm:text-[13px]">
+          <p className="text-[13px] font-semibold text-gray-800">
             Tous les produits
           </p>
         </Link>

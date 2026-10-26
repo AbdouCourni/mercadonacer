@@ -225,6 +225,7 @@ const removeImage = async (id: string) => {
                   src={image.url}
                   alt="Product image"
                   fill
+                  unoptimized
                   className="object-cover"
                 />
               </div>

@@ -152,6 +152,7 @@ export function SingleImageUpload({
               src={value}
               alt="Uploaded image"
               fill
+              unoptimized
               className="object-cover"
             />
           </div>

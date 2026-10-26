@@ -1,24 +1,20 @@
 // File: app/(shop)/categories/page.tsx
 // Path: /app/(shop)/categories/page.tsx
-// Description: All categories page - Gallery Grid
+// Description: All categories page - Matches homepage CategoryGrid style
 
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { FolderOpen } from 'lucide-react'
-import CategoryCard from '@/components/category/category-card'
+import CategoryGrid from '@/components/category/category-grid'
 
 export const dynamic = 'force-dynamic'
 
 export default async function CategoriesPage() {
   const supabase = await createClient()
 
-  // Get all categories with product counts
+  // Get all categories
   const { data: categories, error } = await supabase
     .from('categories')
-    .select(`
-      *,
-      products:products (count)
-    `)
+    .select('*')
     .order('display_order', { ascending: true, nullsFirst: false })
     .order('name')
 
@@ -30,7 +26,7 @@ export default async function CategoriesPage() {
     <div className="container-custom py-8 md:py-12">
       {/* Header */}
       <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-emerald-950 mb-3">
           Acheter par catégorie
         </h1>
         <p className="text-gray-500 text-base">
@@ -38,24 +34,10 @@ export default async function CategoriesPage() {
         </p>
       </div>
 
-      {/* Gallery Grid */}
+      {/* Grid */}
       {categories && categories.length > 0 ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
-          {categories.map((category: any) => {
-            const productCount = category.products?.[0]?.count || 0
-            
-            return (
-              <CategoryCard
-                key={category.id}
-                id={category.id}
-                name={category.name}
-                slug={category.slug}
-                image={category.image_url}
-                productCount={productCount}
-              />
-            )
-          })}
-        </div>
+        /* We pass showAllCard={false} because we are already on the "All Categories" page */
+        <CategoryGrid categories={categories} showAllCard={false} />
       ) : (
         <div className="text-center py-20 bg-gray-50 rounded-2xl">
           <FolderOpen size={48} className="mx-auto text-gray-300 mb-4" />

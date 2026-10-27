@@ -55,6 +55,8 @@ interface ProductFormState {
   promotion_price: string
   promotion_start: string
   promotion_end: string
+  show_in_hero: boolean
+  hero_order: number
 }
 
 // ============================================
@@ -97,6 +99,8 @@ export default function EditProductPage() {
     promotion_price: '',
     promotion_start: '',
     promotion_end: '',
+    show_in_hero: false,
+  hero_order: 99,
   })
 
   // ============================================
@@ -189,11 +193,7 @@ export default function EditProductPage() {
 
         const product = await productRes.json()
 
-        console.log('🔍 [EditPage] Product response:', product)
-console.log('🔍 [EditPage] Keys:', Object.keys(product))
-console.log('🔍 [EditPage] name:', product.name)
-console.log('🔍 [EditPage] price:', product.price)
-console.log('🔍 [EditPage] images:', product.images)
+       
 
         // ✅ Convert DB shape → form shape (everything as strings for inputs)
         setFormData({
@@ -226,6 +226,8 @@ console.log('🔍 [EditPage] images:', product.images)
               : '',
           promotion_start: toLocalDatetime(product.promotion_start),
           promotion_end: toLocalDatetime(product.promotion_end),
+          show_in_hero: product.show_in_hero ?? false,
+          hero_order: product.hero_order ?? 99,
         })
 
         // Load images
@@ -333,6 +335,8 @@ console.log('🔍 [EditPage] images:', product.images)
         promotion_end: formData.is_in_promotion
           ? toISOString(formData.promotion_end)
           : null,
+        show_in_hero: formData.show_in_hero ?? false,
+        hero_order: formData.hero_order ?? 99,
       }
 
       const response = await fetch(`/api/products?id=${productId}`, {
@@ -699,6 +703,34 @@ console.log('🔍 [EditPage] images:', product.images)
                   </p>
                 </>
               )}
+              <div className="space-y-4 border-t pt-4">
+  <h3 className="font-semibold">Affichage sur le Hero (Accueil)</h3>
+  
+  <label className="flex items-center gap-2 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={formData.show_in_hero}
+      onChange={(e) => setFormData({ ...formData, show_in_hero: e.target.checked })}
+      className="w-4 h-4 text-primary rounded"
+    />
+    <span className="text-sm font-medium">Afficher ce produit dans le Hero</span>
+  </label>
+
+  {formData.show_in_hero && (
+    <div>
+      <label className="block text-sm font-medium mb-1">Ordre d'affichage</label>
+      <input
+        type="number"
+        value={formData.hero_order}
+onChange={(e) => {
+  const val = e.target.value === '' ? 99 : parseInt(e.target.value, 10);
+  setFormData({ ...formData, hero_order: val });
+}}        className="w-full px-4 py-2 rounded-lg border border-border"
+      />
+      <p className="text-xs text-text-secondary mt-1">Ex: 1 pour le premier, 2 pour le second, etc.</p>
+    </div>
+  )}
+</div>
             </div>
 
             {/* Codes */}

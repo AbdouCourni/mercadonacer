@@ -1,6 +1,6 @@
 // File: app/(shop)/page.tsx
 // Path: /app/(shop)/page.tsx
-// Description: Mercado Nacer — redesigned homepage (screenshot-matched)
+// Description: Mercado Nacer — Homepage with floating Hero products
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -35,12 +35,13 @@ export default async function HomePage() {
     newProductsResult,
     promoProductsResult,
     categoriesResult,
-    heroSlidesResult,
+    heroProductsResult, // 👈 Changed from heroSlidesResult
   ] = await Promise.all([
-    getProducts({
-      limit: 12,
-      sort: { by: 'created_at', asc: false },
-    }),
+   getProducts({
+  limit: 12, // Show up to 12 featured products in the 6-column grid
+  is_featured: true, // Only get products marked as featured
+  sort: { by: 'created_at', asc: false },
+}),
 
     supabase
       .from('products')
@@ -73,29 +74,28 @@ export default async function HomePage() {
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true }),
 
+    // 👇 NEW QUERY FOR HERO PRODUCTS
     supabase
-      .from('hero_slides')
-      .select(
-        `
-        id,
-        title,
-        subtitle,
-        description,
-        cta,
-        link,
-        image_url,
-        icon,
-        alt_text
-      `,
-      )
+      .from('products')
+      .select('id, name, slug, images')
       .eq('is_active', true)
-      .order('display_order', { ascending: true }),
+      .eq('show_in_hero', true)
+      .order('hero_order', { ascending: true })
+      .limit(10),
   ])
 
   const newProducts = newProductsResult.products || []
   const promoProducts = promoProductsResult.data || []
   const categories = categoriesResult.data || []
-  const heroSlides = heroSlidesResult.data || []
+  
+  // 👇 MAP PRODUCTS TO HERO FORMAT
+  const heroProducts = (heroProductsResult.data || []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    image_url: p.images?.[0] || null,
+  }))
+
   const vitrine = isVitrineMode()
 
   const productCard = (product: any) => (
@@ -123,7 +123,8 @@ export default async function HomePage() {
     <main className="space-y-4 pb-12 md:space-y-6">
       {/* ==================== HERO ==================== */}
       <section className="container-custom pt-4 md:pt-6">
-        <HeroSection slides={heroSlides} />
+        {/* 👇 PASS PRODUCTS TO HERO */}
+        <HeroSection products={heroProducts} />
       </section>
 
       {/* ==================== TRUST BAR ==================== */}
@@ -234,7 +235,7 @@ export default async function HomePage() {
         <CategoryGrid categories={categories} showAllCard />
       </section>
 
-      {/* ==================== NEW PRODUCTS (6-col) ==================== */}
+           {/* ==================== NEW PRODUCTS (6-col) ==================== */}
       <section className="container-custom">
         <div className="mb-5 flex items-end justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -242,29 +243,30 @@ export default async function HomePage() {
               <Sparkles size={22} />
             </div>
             <div>
+              {/* 👇 UPDATE THESE TWO LINES */}
               <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">
-                Nouveaux produits
+                Produits en vedette
               </h2>
               <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-                Découvrez nos dernières arrivées
+                Notre sélection coup de cœur
               </p>
             </div>
           </div>
           <Link
-            href="/products"
+            href="/products?featured=true" // 👈 Update the link to filter featured products
             className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm"
           >
-            Voir tous les nouveaux produits <ArrowRight size={15} />
+            Voir tous les produits en vedette <ArrowRight size={15} />
           </Link>
         </div>
 
-        {newProducts.length > 0 ? (
+        {newProducts.length > 0 ? ( // (You can rename the variable to featuredProducts if you want, but it works fine as is)
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6">
             {newProducts.map(productCard)}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
-            Aucun nouveau produit pour le moment.
+            Aucun produit en vedette pour le moment.
           </div>
         )}
       </section>

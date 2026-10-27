@@ -198,6 +198,7 @@ export default async function CategoryPage({
               src={category.image_url}
               alt={category.name}
               fill
+              unoptimized
               className="object-cover"
             />
           </div>

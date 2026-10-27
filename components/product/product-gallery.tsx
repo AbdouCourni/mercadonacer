@@ -171,6 +171,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
             src={mainImageUrl}
             alt={name}
             fill
+            unoptimized
             className="object-contain p-4 md:p-8 transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, 50vw"
             priority
@@ -244,6 +245,7 @@ export default function ProductGallery({ images, name }: ProductGalleryProps) {
                   fill
                   className="object-contain p-1"
                   sizes="80px"
+                  unoptimized
                 />
               </button>
             ))}

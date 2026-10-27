@@ -227,6 +227,7 @@ export default function ProductCard({
           src={image || '/images/placeholder.jpg'}
           alt={name}
           fill
+          unoptimized
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
           className="object-contain bg-white transition-transform duration-500 group-hover:scale-105"
         />

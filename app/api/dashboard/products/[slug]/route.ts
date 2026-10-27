@@ -1,6 +1,6 @@
 // File: app/api/dashboard/products/route.ts
 // Path: /app/api/dashboard/products/route.ts
-// Description: Dashboard products API (list and single by query)
+// Description: Dashboard products API (list, create, update)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
     
     // If ID is provided, fetch single product
     if (id) {
-      console.log('🔍 [Dashboard API] Fetching product with ID:', id)
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -30,20 +29,13 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error('❌ Supabase error:', error)
-        return NextResponse.json(
-          { error: 'Product not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 })
       }
-
-      console.log('✅ Product found:', data?.name || 'Unknown')
       return NextResponse.json(data)
     }
 
     // If slug is provided, fetch by slug
     if (slug) {
-      console.log('🔍 [Dashboard API] Fetching product with slug:', slug)
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -51,19 +43,12 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error('❌ Supabase error:', error)
-        return NextResponse.json(
-          { error: 'Product not found' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 })
       }
-
-      console.log('✅ Product found:', data?.name || 'Unknown')
       return NextResponse.json(data)
     }
 
     // Otherwise, return list with filters
-    console.log('🔍 [Dashboard API] Fetching products list with filters')
     let query = supabase
       .from('products')
       .select('*', { count: 'exact' })
@@ -105,11 +90,8 @@ export async function GET(request: NextRequest) {
       limit
     })
   } catch (error) {
-    console.error('❌ Dashboard products API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
-    )
+    console.error('Dashboard products API error:', error)
+    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
   }
 }
 
@@ -134,6 +116,9 @@ export async function POST(request: NextRequest) {
       stock: parseInt(body.stock),
       weight: body.weight ? parseFloat(body.weight) : null,
       images: body.images || [],
+      // 👇 NEW FIELDS FOR HERO
+      show_in_hero: body.show_in_hero ?? false,
+      hero_order: body.hero_order ? parseInt(body.hero_order) : 99,
     }
 
     const { data, error } = await supabase
@@ -146,9 +131,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data)
   } catch (error) {
     console.error('Dashboard products POST error:', error)
-    return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+  }
+}
+
+// PATCH - Update product (This handles the edit page requests)
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    const body = await request.json()
+
+    if (!id) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 })
+    }
+
+    // Prepare updates, handling the Hero fields safely
+    const updates = {
+      ...body,
+      // 👇 ENSURE HERO FIELDS ARE SAVED
+      show_in_hero: body.show_in_hero ?? false,
+      hero_order: body.hero_order ? parseInt(body.hero_order) : 99,
+    }
+    
+    // Prevent errors if price/stock are missing in the partial update
+    if (body.price !== undefined) updates.price = parseFloat(body.price)
+    if (body.stock !== undefined) updates.stock = parseInt(body.stock)
+    if (body.compare_price !== undefined) updates.compare_price = body.compare_price ? parseFloat(body.compare_price) : null
+    if (body.weight !== undefined) updates.weight = body.weight ? parseFloat(body.weight) : null
+
+    // Remove ID from payload to avoid Supabase primary key errors
+    delete updates.id
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Dashboard products PATCH error:', error)
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
   }
 }

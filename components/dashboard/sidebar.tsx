@@ -6,7 +6,9 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings,
   LogOut, Menu, X, ChevronRight, Home, BarChart3,
-  FolderOpen, Truck, ClipboardList,Image
+  FolderOpen, Truck, ClipboardList,Image,
+  Tag,
+  Star
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/services/auth.service'
@@ -29,6 +31,8 @@ const navItems = [
   { name: 'Paramètres', href: '/admin/settings', icon: Settings, roles: ['superadmin', 'admin', 'manager'] },
   { name: 'Mes livraisons', href: '/admin/driver/orders', icon: Truck, roles: ['driver'] },
   { name: 'Bannière d\'accueil', href: '/admin/hero-slides', icon: Image, roles: ['superadmin', 'admin', 'manager'] },
+  { name: 'Promotions', href: '/admin/promotions', icon: Tag, roles: ['superadmin', 'admin', 'manager'] },
+  { name: 'Produits en vedette', href: '/admin/featured', icon: Star, roles: ['superadmin', 'admin', 'manager'] },
 ]
 
 export function DashboardSidebar({ userRole, userName }: SidebarProps) {

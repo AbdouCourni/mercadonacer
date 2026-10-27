@@ -43,6 +43,8 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get('search')
   const stock = searchParams.get('stock')
   const status = searchParams.get('status')
+  const showInHero = searchParams.get('show_in_hero')
+
 
   try {
     const supabase = await createClient()
@@ -214,6 +216,9 @@ if (featured) {
     } else if (status === 'inactive') {
       query = query.eq('is_active', false)
     }
+        if (showInHero === 'true') {
+  query = query.eq('show_in_hero', true).order('hero_order', { ascending: true })
+}
 
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
@@ -275,7 +280,7 @@ export async function POST(request: NextRequest) {
     const product = {
       ...body,
       price: parseFloat(body.price),
-      achat_price: body.achat_price ? parseFloat(body.achat_price) : null, // ← NEW
+      achat_price: body.achat_price ? parseFloat(body.achat_price) : null,
       compare_price: body.compare_price ? parseFloat(body.compare_price) : null,
       stock: parseInt(body.stock),
       weight: body.weight ? parseFloat(body.weight) : null,
@@ -284,6 +289,8 @@ export async function POST(request: NextRequest) {
       promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
       promotion_start: body.promotion_start || null,
       promotion_end: body.promotion_end || null,
+      show_in_hero: body.show_in_hero ?? false,
+      hero_order: body.hero_order ?? 99,
     }
 
     const { data, error } = await supabase
@@ -352,6 +359,8 @@ export async function PATCH(request: NextRequest) {
       promotion_price: body.promotion_price ? parseFloat(body.promotion_price) : null,
       promotion_start: body.promotion_start || null,
       promotion_end: body.promotion_end || null,
+      show_in_hero: body.show_in_hero ?? false,
+      hero_order: body.hero_order ?? 99,
     }
 
     const { data, error } = await supabase

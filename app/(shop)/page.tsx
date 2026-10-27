@@ -186,6 +186,7 @@ export default async function HomePage() {
                 src="https://res.cloudinary.com/dfsmkq5mw/image/upload/v1792947196/promosidepanel_gubsuy.png"
                 alt="Les essentiels du quotidien"
                 fill
+                unoptimized
                 sizes="(max-width: 640px) 100vw, 20vw"
                 className="object-cover"
               />

@@ -50,6 +50,7 @@ export default function NewProductPage() {
     promotion_end: '',
     show_in_hero: false,
     hero_order: 99,
+    is_new: false,
   })
 
   // Fetch categories
@@ -120,6 +121,7 @@ export default function NewProductPage() {
         promotion_end: formData.promotion_end || null,
         show_in_hero: formData.show_in_hero,
         hero_order: formData.hero_order,
+        is_new: formData.is_new,
       }
 
       const response = await fetch('/api/products', {
@@ -469,6 +471,15 @@ export default function NewProductPage() {
                   className="rounded border-border"
                 />
                 <span className="text-sm font-medium text-amber-600">Produit en vedette (Accueil)</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_new}
+                  onChange={(e) => setFormData({ ...formData, is_new: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium text-blue-600">Nouveau produit</span>
               </label>
 
               {/* 👇 HERO SETTINGS MOVED HERE 👇 */}

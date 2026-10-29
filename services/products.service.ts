@@ -9,6 +9,7 @@ import { Product, ProductFilters } from '@/types/product.types'
 interface ExtendedFilters extends ProductFilters {
   includeInactive?: boolean
   is_featured?: boolean
+  is_new?: boolean
 }
 
 export async function getProducts(filters?: ExtendedFilters) {
@@ -54,6 +55,10 @@ export async function getProducts(filters?: ExtendedFilters) {
     // Featured filter
     if (filters?.is_featured) {
       query = query.eq('is_featured', true)
+    }
+    // New products filter
+    if (filters?.is_new) {
+      query = query.eq('is_new', true)
     }
 
     // Search by name, description, barcode, or SKU

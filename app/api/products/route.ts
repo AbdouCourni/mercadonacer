@@ -291,6 +291,8 @@ export async function POST(request: NextRequest) {
       promotion_end: body.promotion_end || null,
       show_in_hero: body.show_in_hero ?? false,
       hero_order: body.hero_order ?? 99,
+      is_new: body.is_new ?? false,
+
     }
 
     const { data, error } = await supabase
@@ -361,6 +363,7 @@ export async function PATCH(request: NextRequest) {
       promotion_end: body.promotion_end || null,
       show_in_hero: body.show_in_hero ?? false,
       hero_order: body.hero_order ?? 99,
+      is_new: body.is_new ?? false,
     }
 
     const { data, error } = await supabase

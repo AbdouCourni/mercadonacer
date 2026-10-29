@@ -57,6 +57,7 @@ interface ProductFormState {
   promotion_end: string
   show_in_hero: boolean
   hero_order: number
+   is_new: boolean
 }
 
 // ============================================
@@ -101,6 +102,7 @@ export default function EditProductPage() {
     promotion_end: '',
     show_in_hero: false,
   hero_order: 99,
+  is_new: false,
   })
 
   // ============================================
@@ -228,6 +230,8 @@ export default function EditProductPage() {
           promotion_end: toLocalDatetime(product.promotion_end),
           show_in_hero: product.show_in_hero ?? false,
           hero_order: product.hero_order ?? 99,
+          is_new: product.is_new ?? false,
+
         })
 
         // Load images
@@ -337,6 +341,8 @@ export default function EditProductPage() {
           : null,
         show_in_hero: formData.show_in_hero ?? false,
         hero_order: formData.hero_order ?? 99,
+        is_new: formData.is_new,
+
       }
 
       const response = await fetch(`/api/products?id=${productId}`, {
@@ -637,6 +643,15 @@ export default function EditProductPage() {
                   className="rounded border-border"
                 />
                 <span className="text-sm font-medium">Activer la promotion</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.is_new}
+                  onChange={(e) => setFormData({ ...formData, is_new: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium text-blue-600">Nouveau produit</span>
               </label>
 
               {formData.is_in_promotion && (

@@ -1,6 +1,6 @@
 // File: app/(shop)/page.tsx
 // Path: /app/(shop)/page.tsx
-// Description: Mercado Nacer — Homepage with floating Hero products
+// Description: Mercado Nacer — Homepage with Floating Hero, Promos, Categories, Featured, and New Products.
 
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,6 +15,8 @@ import {
   Star,
   MessageCircle,
   Sparkles,
+  Flame,
+  Truck,
 } from 'lucide-react'
 
 import HeroSection from '@/components/layout/hero-section'
@@ -32,29 +34,33 @@ export default async function HomePage() {
   const now = new Date().toISOString()
 
   const [
+    featuredProductsResult,
     newProductsResult,
     promoProductsResult,
     categoriesResult,
-    heroProductsResult, // 👈 Changed from heroSlidesResult
+    heroProductsResult,
   ] = await Promise.all([
-   getProducts({
-  limit: 12, // Show up to 12 featured products in the 6-column grid
-  is_featured: true, // Only get products marked as featured
-  sort: { by: 'created_at', asc: false },
-}),
+    // 1. Featured Products
+    getProducts({
+      limit: 12,
+      is_featured: true,
+      sort: { by: 'created_at', asc: false },
+    }),
 
+    // 2. New Products (Attempt to fetch is_new, if empty, fetch latest created_at)
+    getProducts({
+      limit: 12,
+      is_new: true, // Assuming you have an 'is_new' column. If not, it will just fallback.
+      sort: { by: 'created_at', asc: false },
+    }),
+
+    // 3. Promotions
     supabase
       .from('products')
-      .select(
-        `
+      .select(`
         *,
-        categories:category_id (
-          id,
-          name,
-          slug
-        )
-      `,
-      )
+        categories:category_id (id, name, slug)
+      `)
       .eq('is_active', true)
       .eq('is_in_promotion', true)
       .not('promotion_price', 'is', null)
@@ -62,19 +68,18 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(8),
 
+    // 4. Categories
     supabase
       .from('categories')
-      .select(
-        `
+      .select(`
         *,
         products:products (count)
-      `,
-      )
+      `)
       .eq('display_in_home', true)
       .order('display_order', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true }),
 
-    // 👇 NEW QUERY FOR HERO PRODUCTS
+    // 5. Hero Products
     supabase
       .from('products')
       .select('id, name, slug, images')
@@ -84,11 +89,19 @@ export default async function HomePage() {
       .limit(10),
   ])
 
-  const newProducts = newProductsResult.products || []
+  // Fallback logic: If no products are marked as "New", fetch the latest 12 products
+  let newProducts = newProductsResult.products || []
+  if (newProducts.length === 0) {
+    const latestProducts = await getProducts({
+      limit: 12,
+      sort: { by: 'created_at', asc: false },
+    })
+    newProducts = latestProducts.products || []
+  }
+
+  const featuredProducts = featuredProductsResult.products || []
   const promoProducts = promoProductsResult.data || []
   const categories = categoriesResult.data || []
-  
-  // 👇 MAP PRODUCTS TO HERO FORMAT
   const heroProducts = (heroProductsResult.data || []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -112,6 +125,7 @@ export default async function HomePage() {
       rating={product.rating}
       reviewsCount={product.reviews_count}
       stock={product.stock}
+      isNew={product.is_new}
       isInPromotion={product.is_in_promotion}
       promotionPrice={product.promotion_price}
       promotionStart={product.promotion_start}
@@ -120,10 +134,27 @@ export default async function HomePage() {
   )
 
   return (
-    <main className="space-y-4 pb-12 md:space-y-6">
+    <main className="space-y-6 pb-12 md:space-y-10">
+      {/* ==================== MOBILE NAVIGATION (Jump Links) ==================== */}
+      <div className="lg:hidden container-custom pt-2 pb-1">
+        <div className="flex overflow-x-auto gap-2 hide-scrollbar snap-x">
+          <a href="#promotions" className="snap-start shrink-0 flex items-center gap-1.5 rounded-full bg-[#FD1C22]/10 px-4 py-2 text-xs font-bold text-[#FD1C22]">
+            <Tag size={14} /> Promos
+          </a>
+          <a href="#categories" className="snap-start shrink-0 flex items-center gap-1.5 rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold text-emerald-700">
+            <Grid2X2 size={14} /> Catégories
+          </a>
+          <a href="#featured" className="snap-start shrink-0 flex items-center gap-1.5 rounded-full bg-amber-50 px-4 py-2 text-xs font-bold text-amber-700">
+            <Sparkles size={14} /> En vedette
+          </a>
+          <a href="#new-products" className="snap-start shrink-0 flex items-center gap-1.5 rounded-full bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700">
+            <Flame size={14} /> Nouveautés
+          </a>
+        </div>
+      </div>
+
       {/* ==================== HERO ==================== */}
-      <section className="container-custom pt-4 md:pt-6">
-        {/* 👇 PASS PRODUCTS TO HERO */}
+      <section className="container-custom">
         <HeroSection products={heroProducts} />
       </section>
 
@@ -143,9 +174,7 @@ export default async function HomePage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-emerald-950 sm:text-sm">{title}</p>
-                <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-600 sm:text-xs">
-                  {subtitle}
-                </p>
+                <p className="mt-0.5 truncate text-[11px] leading-4 text-gray-600 sm:text-xs">{subtitle}</p>
               </div>
             </div>
           ))}
@@ -154,25 +183,18 @@ export default async function HomePage() {
 
       {/* ==================== PROMOTIONS ==================== */}
       {promoProducts.length > 0 && (
-        <section className="container-custom">
+        <section id="promotions" className="container-custom scroll-mt-20">
           <div className="mb-4 flex items-end justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FD1C22] text-white shadow-sm">
                 <Tag size={18} />
               </div>
               <div>
-                <h2 className="text-xl font-extrabold text-[#FD1C22] md:text-2xl">
-                  Promotions
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">
-                  Des offres exceptionnelles à ne pas manquer
-                </p>
+                <h2 className="text-xl font-extrabold text-[#FD1C22] md:text-2xl">Promotions</h2>
+                <p className="mt-0.5 text-xs text-gray-500 sm:text-sm">Des offres exceptionnelles à ne pas manquer</p>
               </div>
             </div>
-            <Link
-              href="/promotions"
-              className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 sm:text-sm"
-            >
+            <Link href="/promotions" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900 sm:text-sm">
               Voir toutes les promotions <ArrowRight size={14} />
             </Link>
           </div>
@@ -180,7 +202,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
             {promoProducts.slice(0, 4).map(productCard)}
 
-            {/* Vertical promo banner — full-bleed image + text overlay */}
+            {/* Vertical Promo Banner */}
             <div className="relative col-span-2 overflow-hidden rounded-2xl sm:col-span-1 lg:col-span-1">
               <Image
                 src="https://res.cloudinary.com/dfsmkq5mw/image/upload/v1792947196/promosidepanel_gubsuy.png"
@@ -199,10 +221,7 @@ export default async function HomePage() {
                   Qualité, fraîcheur, au meilleur prix.
                 </p>
                 <div className="flex-1" />
-                <Link
-                  href="/products"
-                  className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-800 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-900 sm:text-sm"
-                >
+                <Link href="/products" className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-800 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-900 sm:text-sm">
                   Découvrir <ArrowRight size={14} />
                 </Link>
               </div>
@@ -212,62 +231,74 @@ export default async function HomePage() {
       )}
 
       {/* ==================== CATEGORIES ==================== */}
-      <section className="container-custom">
+      <section id="categories" className="container-custom scroll-mt-20">
         <div className="mb-5 flex items-end justify-between gap-3">
           <div>
             <div className="mb-2 flex items-center gap-2 text-emerald-700">
               <Grid2X2 size={19} />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                Explorez notre magasin
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider">Explorez notre magasin</span>
             </div>
-            <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">
-              Acheter par catégorie
-            </h2>
+            <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">Acheter par catégorie</h2>
           </div>
-          <Link
-            href="/categories"
-            className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm"
-          >
-            Voir toutes les catégories <ArrowRight size={15} />
+          <Link href="/categories" className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm">
+            Voir toutes <ArrowRight size={15} />
           </Link>
         </div>
-
         <CategoryGrid categories={categories} showAllCard />
       </section>
 
-           {/* ==================== NEW PRODUCTS (6-col) ==================== */}
-      <section className="container-custom">
+      {/* ==================== FEATURED PRODUCTS ==================== */}
+      <section id="featured" className="container-custom scroll-mt-20">
         <div className="mb-5 flex items-end justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
               <Sparkles size={22} />
             </div>
             <div>
-              {/* 👇 UPDATE THESE TWO LINES */}
-              <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">
-                Produits en vedette
-              </h2>
-              <p className="mt-1 text-xs text-gray-500 sm:text-sm">
-                Notre sélection coup de cœur
-              </p>
+              <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">Produits en vedette</h2>
+              <p className="mt-1 text-xs text-gray-500 sm:text-sm">Notre sélection coup de cœur</p>
             </div>
           </div>
-          <Link
-            href="/products?featured=true" // 👈 Update the link to filter featured products
-            className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm"
-          >
-            Voir tous les produits en vedette <ArrowRight size={15} />
+          <Link href="/products?featured=true" className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm">
+            Voir tout <ArrowRight size={15} />
           </Link>
         </div>
 
-        {newProducts.length > 0 ? ( // (You can rename the variable to featuredProducts if you want, but it works fine as is)
+        {featuredProducts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6">
+            {featuredProducts.map(productCard)}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+            Aucun produit en vedette pour le moment.
+          </div>
+        )}
+      </section>
+
+      {/* ==================== NEW PRODUCTS ==================== */}
+      <section id="new-products" className="container-custom scroll-mt-20">
+        <div className="mb-5 flex items-end justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <Flame size={22} />
+            </div>
+            <div>
+              <h2 className="text-xl font-extrabold text-gray-900 md:text-2xl">Nouveaux produits</h2>
+              <p className="mt-1 text-xs text-gray-500 sm:text-sm">Découvrez nos dernières arrivées</p>
+            </div>
+          </div>
+          <Link href="/products" className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 sm:text-sm">
+            Voir tout <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {newProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6">
             {newProducts.map(productCard)}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
-            Aucun produit en vedette pour le moment.
+            Aucun nouveau produit pour le moment.
           </div>
         )}
       </section>
@@ -282,19 +313,12 @@ export default async function HomePage() {
                   <MessageCircle size={14} />
                   Commande par WhatsApp
                 </span>
-                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">
-                  Besoin de faire vos courses ?
-                </h2>
+                <h2 className="mt-4 text-2xl font-extrabold md:text-3xl">Besoin de faire vos courses ?</h2>
                 <p className="mt-3 text-sm leading-6 text-white/80">
                   Contactez-nous sur WhatsApp pour découvrir nos produits et passer votre commande.
                 </p>
               </div>
-              <a
-                href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
-              >
+              <a href={`https://wa.me/${VITRINE_WHATSAPP.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50">
                 <MessageCircle size={18} className="mr-2" />
                 Commander sur WhatsApp
               </a>
@@ -308,18 +332,14 @@ export default async function HomePage() {
                   <Star size={17} className="fill-amber-400 text-amber-500" />
                   Votre marché, près de chez vous
                 </div>
-                <h2 className="mt-3 text-2xl font-extrabold text-emerald-950 md:text-3xl">
-                  Simplifiez vos courses avec NacerMarket
-                </h2>
+                <h2 className="mt-3 text-2xl font-extrabold text-emerald-950 md:text-3xl">Simplifiez vos courses avec NacerMarket</h2>
                 <p className="mt-3 text-sm leading-6 text-gray-600">
-                  Découvrez notre sélection de produits pour la maison et profitez d’une
-                  expérience d’achat simple et pratique.
+                  Découvrez notre sélection de produits pour la maison et profitez d’une expérience d’achat simple et pratique.
                 </p>
               </div>
               <Link href="/products" className="shrink-0">
                 <Button className="rounded-full bg-emerald-800 px-6 py-3 font-bold text-white hover:bg-emerald-900">
-                  Commencer mes achats
-                  <ArrowRight size={17} className="ml-2" />
+                  Commencer mes achats <ArrowRight size={17} className="ml-2" />
                 </Button>
               </Link>
             </div>

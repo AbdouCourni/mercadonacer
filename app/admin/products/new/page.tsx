@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Plus, Tag } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MultiImageUpload } from '@/components/dashboard/multi-image-upload'
 
@@ -28,6 +28,7 @@ export default function NewProductPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [images, setImages] = useState<ProductImage[]>([])
   const [error, setError] = useState<string | null>(null)
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -71,7 +72,6 @@ export default function NewProductPage() {
     setError(null)
     setLoading(true)
 
-    // Validate required fields
     if (!formData.name.trim()) {
       setError('Le nom du produit est requis')
       setLoading(false)
@@ -102,7 +102,7 @@ export default function NewProductPage() {
         description: formData.description.trim(),
         slug: slug,
         price: parseFloat(formData.price),
-        achat_price: parseFloat(formData.achat_price),
+        achat_price: formData.achat_price ? parseFloat(formData.achat_price) : null,
         compare_price: formData.compare_price ? parseFloat(formData.compare_price) : null,
         stock: parseInt(formData.stock),
         category_id: formData.category_id || null,
@@ -121,8 +121,6 @@ export default function NewProductPage() {
         show_in_hero: formData.show_in_hero,
         hero_order: formData.hero_order,
       }
-
-      console.log('Sending product data:', productData)
 
       const response = await fetch('/api/products', {
         method: 'POST',
@@ -288,7 +286,6 @@ export default function NewProductPage() {
                 </div>
               </div>
 
-              {/* 🔥 ADD STOCK FIELD */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-text-primary mb-1">
@@ -336,7 +333,6 @@ export default function NewProductPage() {
               </div>
             </div>
 
-
             {/* Codes */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary">Codes et références</h2>
@@ -368,6 +364,8 @@ export default function NewProductPage() {
                 </div>
               </div>
             </div>
+
+            {/* 🔥 Promotion (Hero removed from here) */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
               <h2 className="font-semibold text-text-primary flex items-center gap-2">
                 <Tag size={18} />
@@ -430,32 +428,6 @@ export default function NewProductPage() {
                   </div>
                 </>
               )}
-              <div className="space-y-4 border-t pt-4">
-  <h3 className="font-semibold">Affichage sur le Hero (Accueil)</h3>
-  
-  <label className="flex items-center gap-2 cursor-pointer">
-    <input
-      type="checkbox"
-      checked={formData.show_in_hero}
-      onChange={(e) => setFormData({ ...formData, show_in_hero: e.target.checked })}
-      className="w-4 h-4 text-primary rounded"
-    />
-    <span className="text-sm font-medium">Afficher ce produit dans le Hero</span>
-  </label>
-
-  {formData.show_in_hero && (
-    <div>
-      <label className="block text-sm font-medium mb-1">Ordre d'affichage</label>
-      <input
-        type="number"
-        value={formData.hero_order}
-        onChange={(e) => setFormData({ ...formData, hero_order: parseInt(e.target.value) })}
-        className="w-full px-4 py-2 rounded-lg border border-border"
-      />
-      <p className="text-xs text-text-secondary mt-1">Ex: 1 pour le premier, 2 pour le second, etc.</p>
-    </div>
-  )}
-</div>
             </div>
             
           </div>
@@ -475,9 +447,9 @@ export default function NewProductPage() {
               </p>
             </div>
 
-            {/* Status */}
+            {/* Status & Visibility */}
             <div className="bg-white rounded-xl border border-border p-6 space-y-4">
-              <h2 className="font-semibold text-text-primary">Statut</h2>
+              <h2 className="font-semibold text-text-primary">Statut et Visibilité</h2>
 
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
@@ -496,8 +468,39 @@ export default function NewProductPage() {
                   onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
                   className="rounded border-border"
                 />
-                <span className="text-sm">Produit en vedette</span>
+                <span className="text-sm font-medium text-amber-600">Produit en vedette (Accueil)</span>
               </label>
+
+              {/* 👇 HERO SETTINGS MOVED HERE 👇 */}
+              <div className="border-t border-border pt-3 mt-3 space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.show_in_hero}
+                    onChange={(e) => setFormData({ ...formData, show_in_hero: e.target.checked })}
+                    className="rounded border-border"
+                  />
+                  <span className="text-sm font-medium text-emerald-700">Afficher dans le Hero</span>
+                </label>
+
+                {formData.show_in_hero && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Ordre d'affichage
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.hero_order}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 99 : parseInt(e.target.value, 10);
+                        setFormData({ ...formData, hero_order: val });
+                      }}
+                      className="w-full px-4 py-2 rounded-lg border border-border"
+                    />
+                    <p className="text-xs text-text-secondary mt-1">Ex: 1 pour le premier.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

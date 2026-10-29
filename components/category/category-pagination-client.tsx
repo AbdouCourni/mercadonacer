@@ -29,7 +29,13 @@ export function CategoryPaginationClient({
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams()
     if (sort && sort !== 'created_at-desc') params.set('sort', sort)
-    if (newPage > 0) params.set('page', String(newPage + 1))
+    
+    // 👇 FIX: URL is 1-indexed. So page 0 becomes "page=1", page 1 becomes "page=2"
+    if (newPage > 0) {
+      params.set('page', String(newPage + 1))
+    } else {
+      params.delete('page') // Page 1 is the default, no need for ?page=1
+    }
     
     const url = params.toString()
       ? `/categories/${slug}?${params.toString()}`

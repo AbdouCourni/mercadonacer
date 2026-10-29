@@ -84,7 +84,7 @@ export default async function CategoryPage({
 }: CategoryPageProps) {
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
-  const page = sp?.page ? parseInt(sp.page) : 0
+  const page = sp?.page ? Math.max(0, parseInt(sp.page) - 1) : 0
   const limit = 20
   const sort = sp?.sort || 'created_at-desc'
 
@@ -101,7 +101,7 @@ export default async function CategoryPage({
     notFound()
   }
 
-  // 2. Get products in this category
+   // 2. Get products in this category
   let query = supabase
     .from('products')
     .select('*', { count: 'exact' })
@@ -126,8 +126,18 @@ export default async function CategoryPage({
 
   const { data: products, error: productsError, count } = await query
 
+  // 👇 SAFER ERROR LOGGING
   if (productsError) {
-    console.error('Products error:', productsError)
+    console.error('❌ Products error:', {
+      message: productsError.message,
+      details: productsError.details,
+      hint: productsError.hint,
+      code: productsError.code,
+      page,
+      from,
+      to,
+      categoryId: category.id,
+    })
   }
 
   const totalProducts = count || 0

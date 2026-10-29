@@ -60,7 +60,7 @@ html[dir='rtl'] .rtl-flip {
   --font-mono: var(--font-geist-mono);
 }
 
-@theme {
+/* @theme {
   --animate-marquee: marquee 30s linear infinite;
 
   @keyframes marquee {
@@ -71,7 +71,7 @@ html[dir='rtl'] .rtl-flip {
       transform: translateX(-33.33%);
     }
   }
-}
+} */
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {

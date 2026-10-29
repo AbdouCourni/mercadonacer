@@ -119,8 +119,10 @@ export default function HeroSlidesPage() {
     setSearchResults([])
   }
 
-  const removeProduct = (id: string) => {
-    setHeroProducts(heroProducts.filter(p => p.id !== id))
+    const removeProduct = (id: string) => {
+    if (confirm("Voulez-vous retirer ce produit du Hero ? (Il ne sera supprimé qu'après avoir cliqué sur Sauvegarder)")) {
+      setHeroProducts(heroProducts.filter(p => p.id !== id))
+    }
   }
 
   const moveUp = (index: number) => {
@@ -143,46 +145,20 @@ export default function HeroSlidesPage() {
     const handleSave = async () => {
     setSaving(true)
     try {
-      // 1. Get the list of IDs currently in the selection
-      const currentIds = heroProducts.map(p => p.id)
+      // Extract only the IDs in their new sorted order
+      const orderedIds = heroProducts.map(p => p.id)
 
-      // 2. Update the ones in the list (set show_in_hero = true and assign order)
-      const addPromises = heroProducts.map((product, index) => 
-        fetch(`/api/products?id=${product.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            show_in_hero: true,
-            hero_order: index + 1,
-          }),
-        })
-      )
+      // Send a single request to a new custom endpoint (see API below)
+      const response = await fetch('/api/products/hero-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+      })
 
-      // 3. (Optional but recommended) Hide products that were previously in hero but got removed
-      // To do this perfectly, we fetch all current hero products from the DB first.
-      const res = await fetch('/api/products?show_in_hero=true')
-      const dbData = await res.json()
-      const dbHeroIds = (dbData.products || []).map((p: any) => p.id)
+      if (!response.ok) throw new Error('Failed to save')
 
-      // Find IDs that are in DB but NOT in our current list
-      const removedIds = dbHeroIds.filter((id: string) => !currentIds.includes(id))
-
-      // Create promises to hide them
-      const removePromises = removedIds.map((id: string) => 
-        fetch(`/api/products?id=${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            show_in_hero: false,
-          }),
-        })
-      )
-
-      // 4. Run all updates at the same time
-      await Promise.all([...addPromises, ...removePromises])
-      
       router.refresh()
-      alert('Sélection sauvegardée avec succès !')
+      alert('Sélection du Hero sauvegardée avec succès !')
     } catch (error) {
       console.error('Save error:', error)
       alert('Erreur lors de la sauvegarde')
